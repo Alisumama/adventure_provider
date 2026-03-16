@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import 'core/bindings/auth_binding.dart';
+import 'core/bindings/initial_binding.dart';
 import 'core/constants/app_routes.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
+import 'features/auth/views/forgot_password_screen.dart';
+import 'features/auth/views/login_screen.dart';
+import 'features/auth/views/reset_password_screen.dart';
+import 'features/auth/views/signup_screen.dart';
+import 'features/auth/views/verify_otp_screen.dart';
 import 'features/splash/splash_screen.dart';
 
 void main() {
@@ -37,6 +44,7 @@ class MyApp extends StatelessWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
       debugShowCheckedModeBanner: false,
+      initialBinding: InitialBinding(),
       home: const SplashScreen(),
       defaultTransition: Transition.fadeIn,
       transitionDuration: const Duration(milliseconds: 300),
@@ -51,11 +59,28 @@ class MyApp extends StatelessWidget {
         ),
         GetPage(
           name: AppRoutes.login,
-          page: () => _PlaceholderScreen(AppRoutes.login),
+          page: () => const LoginScreen(),
+          binding: AuthBinding(),
         ),
         GetPage(
           name: AppRoutes.register,
-          page: () => _PlaceholderScreen(AppRoutes.register),
+          page: () => const SignupScreen(),
+          binding: AuthBinding(),
+        ),
+        GetPage(
+          name: AppRoutes.forgotPassword,
+          page: () => const ForgotPasswordScreen(),
+          binding: AuthBinding(),
+        ),
+        GetPage(
+          name: AppRoutes.verifyOtp,
+          page: () => const VerifyOtpScreen(),
+          binding: AuthBinding(),
+        ),
+        GetPage(
+          name: AppRoutes.resetPassword,
+          page: () => const ResetPasswordScreen(),
+          binding: AuthBinding(),
         ),
         GetPage(
           name: AppRoutes.trackDetail,

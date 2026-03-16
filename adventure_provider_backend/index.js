@@ -26,6 +26,10 @@ app.get('/', (req, res) => {
   res.send('Adventure Provider Backend Server is running han g');
 });
 
+// Auth routes at /api/auth
+const authRoutes = require('./routes/auth.routes');
+app.use('/api/auth', authRoutes);
+
 // Start Server
 app.listen(PORT, () => {
   console.log(`Server is running on port: ${PORT}`);

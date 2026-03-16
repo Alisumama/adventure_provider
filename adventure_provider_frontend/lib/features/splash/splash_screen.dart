@@ -79,11 +79,14 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    _controller.forward();
+    // Defer animation start to after first frame to avoid "System UI not responding" on slow emulators
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _controller.forward();
+    });
 
     Future.delayed(const Duration(milliseconds: _splashDurationMs), () {
       if (mounted) {
-        Get.offAllNamed(AppRoutes.home);
+        Get.offAllNamed(AppRoutes.login);
       }
     });
   }
