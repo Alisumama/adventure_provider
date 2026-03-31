@@ -2,13 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show compute, kIsWeb;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
-import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 
 import '../constants/api_config.dart';
+import 'image_compression.dart';
 
 /// Picks images and uploads them to the backend with Bearer auth.
 class ImageUploadService {
@@ -22,7 +23,6 @@ class ImageUploadService {
   final ImagePicker _picker;
 
   static const String _kAccessToken = 'access_token';
-  static const int _maxBytes = 1024 * 1024; // 1 MB
 
   Future<XFile?> pickImage({bool fromCamera = false}) async {
     return _picker.pickImage(
@@ -49,60 +49,29 @@ class ImageUploadService {
     );
   }
 
-  /// Decodes the picked file, re-encodes as JPEG, and shrinks quality / dimensions
-  /// until the output is at most [_maxBytes].
-  Future<Uint8List> _compressToUnder1Mb(String filePath) async {
-    final raw = await File(filePath).readAsBytes();
-    final decoded = img.decodeImage(raw);
-    if (decoded == null) {
-      throw Exception('Could not read image. Try a JPG, PNG, or WebP photo.');
-    }
-
-    var work = decoded;
-    var quality = 88;
-
-    List<int> encode() =>
-        img.encodeJpg(work, quality: quality.clamp(5, 100));
-
-    void shrink() {
-      final w = work.width;
-      final h = work.height;
-      if (w <= 320 && h <= 320) return;
-      final nw = (w * 0.82).round().clamp(1, w);
-      final nh = (h * 0.82).round().clamp(1, h);
-      work = img.copyResize(work, width: nw, height: nh);
-    }
-
-    var out = encode();
-    for (var pass = 0; pass < 48 && out.length > _maxBytes; pass++) {
-      if (quality > 24) {
-        quality -= 6;
-        out = encode();
-        continue;
+  Future<Uint8List> _compressPickToUnder1Mb(XFile imageFile) async {
+    final raw = await imageFile.readAsBytes();
+    try {
+      if (kIsWeb) {
+        return compressRawJpegUnder1Mb(raw);
       }
-      final w0 = work.width;
-      final h0 = work.height;
-      shrink();
-      if (work.width == w0 && work.height == h0) {
-        quality -= 4;
-        if (quality < 8) {
-          throw Exception(
-            'Image could not be compressed under 1 MB. Try a smaller photo.',
-          );
-        }
-        out = encode();
-        continue;
-      }
-      quality = 82;
-      out = encode();
-    }
-
-    if (out.length > _maxBytes) {
-      throw Exception(
-        'Image could not be compressed under 1 MB. Try a smaller photo.',
+      return await compute(compressRawJpegUnder1Mb, raw).timeout(
+        const Duration(seconds: 90),
+        onTimeout: () => throw Exception(
+          'Compressing the photo took too long. Try another image.',
+        ),
       );
+    } on StateError catch (e) {
+      if (e.message == 'decode_failed') {
+        throw Exception('Could not read image. Try a JPG, PNG, or WebP photo.');
+      }
+      if (e.message == 'too_large') {
+        throw Exception(
+          'Image could not be compressed under 1 MB. Try a smaller photo.',
+        );
+      }
+      rethrow;
     }
-    return Uint8List.fromList(out);
   }
 
   Future<String> _upload({
@@ -120,7 +89,7 @@ class ImageUploadService {
     final request = http.MultipartRequest('PUT', uri);
     request.headers['Authorization'] = 'Bearer $token';
 
-    final compressed = await _compressToUnder1Mb(imageFile.path);
+    final compressed = await _compressPickToUnder1Mb(imageFile);
     final baseName = p.basenameWithoutExtension(imageFile.path);
     final filename = '${baseName.isEmpty ? 'photo' : baseName}.jpg';
 

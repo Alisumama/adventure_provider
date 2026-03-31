@@ -154,13 +154,25 @@ class ProfileController extends GetxController {
   }
 
   void _hideBlockingLoader() {
-    for (var i = 0; i < 3; i++) {
+    void popDialogRoute() {
+      for (final ctx in <BuildContext?>[Get.overlayContext, Get.key.currentContext]) {
+        if (ctx == null || !ctx.mounted) continue;
+        final nav = Navigator.of(ctx, rootNavigator: true);
+        if (nav.canPop()) {
+          nav.pop();
+          return;
+        }
+      }
       if (Get.isDialogOpen == true) {
         Get.back<void>();
-      } else {
-        break;
       }
     }
+
+    popDialogRoute();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      popDialogRoute();
+      WidgetsBinding.instance.addPostFrameCallback((_) => popDialogRoute());
+    });
   }
 
   /// Picks an image (camera/gallery), uploads to backend, updates profileImage locally.
@@ -174,7 +186,12 @@ class ProfileController extends GetxController {
 
       isSaving.value = true;
       _showBlockingLoader();
-      final url = await _imageUploadService.uploadProfileImage(picked);
+      final url = await _imageUploadService.uploadProfileImage(picked).timeout(
+        const Duration(seconds: 120),
+        onTimeout: () => throw Exception(
+          'Upload took too long. Check your connection and try again.',
+        ),
+      );
 
       final current = profile.value;
       if (current != null) {
@@ -206,7 +223,12 @@ class ProfileController extends GetxController {
 
       isSaving.value = true;
       _showBlockingLoader();
-      final url = await _imageUploadService.uploadCoverImage(picked);
+      final url = await _imageUploadService.uploadCoverImage(picked).timeout(
+        const Duration(seconds: 120),
+        onTimeout: () => throw Exception(
+          'Upload took too long. Check your connection and try again.',
+        ),
+      );
 
       final current = profile.value;
       if (current != null) {
