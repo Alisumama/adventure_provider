@@ -2,6 +2,18 @@ import 'package:dio/dio.dart';
 
 import '../models/user_model.dart';
 
+class AuthSession {
+  const AuthSession({
+    required this.user,
+    required this.accessToken,
+    required this.refreshToken,
+  });
+
+  final UserModel user;
+  final String accessToken;
+  final String refreshToken;
+}
+
 class AuthRepository {
   AuthRepository(this._dio);
 
@@ -16,19 +28,37 @@ class AuthRepository {
     throw Exception(message);
   }
 
-  Future<UserModel?> login(String email, String password) async {
-    final response = await _dio.post<Map<String, dynamic>>(
-      '$_auth/login',
-      data: {'email': email, 'password': password},
-    );
-    if (response.statusCode != 200 || response.data == null) return null;
-    final data = response.data!;
-    final userJson = data['user'] as Map<String, dynamic>?;
-    if (userJson == null) return null;
-    return UserModel.fromJson(userJson);
+  Future<AuthSession?> login(String email, String password) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '$_auth/login',
+        data: {'email': email.trim(), 'password': password},
+      );
+      if (response.statusCode != 200 || response.data == null) return null;
+      final data = response.data!;
+      final userJson = data['user'] as Map<String, dynamic>?;
+      final accessToken = data['accessToken'] as String?;
+      final refreshToken = data['refreshToken'] as String?;
+      if (userJson == null || accessToken == null || refreshToken == null) {
+        return null;
+      }
+      return AuthSession(
+        user: UserModel.fromJson(userJson),
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+      );
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      final message = data is Map && data['message'] != null
+          ? data['message'].toString()
+          : (e.response?.statusCode == 401
+              ? 'Invalid email or password'
+              : e.message ?? 'Login failed');
+      throw Exception(message);
+    }
   }
 
-  Future<UserModel?> register({
+  Future<AuthSession?> register({
     required String name,
     required String email,
     required String password,
@@ -49,8 +79,16 @@ class AuthRepository {
       if (response.statusCode != 201 || response.data == null) return null;
       final data = response.data!;
       final userJson = data['user'] as Map<String, dynamic>?;
-      if (userJson == null) return null;
-      return UserModel.fromJson(userJson);
+      final accessToken = data['accessToken'] as String?;
+      final refreshToken = data['refreshToken'] as String?;
+      if (userJson == null || accessToken == null || refreshToken == null) {
+        return null;
+      }
+      return AuthSession(
+        user: UserModel.fromJson(userJson),
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+      );
     } on DioException catch (e) {
       final data = e.response?.data;
       final message = data is Map && data['message'] != null
@@ -116,17 +154,22 @@ class AuthRepository {
     }
   }
 
-  Future<Map<String, String>?> refreshToken(String refreshToken) async {
-    final response = await _dio.post<Map<String, dynamic>>(
-      '$_auth/refresh',
-      data: {'refreshToken': refreshToken},
-    );
-    if (response.statusCode != 200 || response.data == null) return null;
-    final data = response.data!;
-    final access = data['accessToken'] as String?;
-    final refresh = data['refreshToken'] as String?;
-    if (access == null) return null;
-    return {'accessToken': access, 'refreshToken': refresh ?? access};
+  /// POST /auth/refresh
+  /// Returns { user, accessToken } (backend doesn't rotate refresh token).
+  Future<Map<String, dynamic>?> refreshAccessToken(String refreshToken) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '$_auth/refresh',
+        data: {'refreshToken': refreshToken},
+      );
+      if (response.statusCode != 200 || response.data == null) return null;
+      return response.data!;
+    } on DioException catch (e) {
+      final msg = e.response?.data is Map && e.response?.data['message'] != null
+          ? e.response!.data['message'].toString()
+          : e.message ?? 'Refresh failed';
+      throw Exception(msg);
+    }
   }
 
   Future<UserModel?> getMe() async {

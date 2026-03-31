@@ -108,7 +108,7 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<AuthController>();
-    final topHeight = MediaQuery.sizeOf(context).height * 0.35;
+    final topHeight = MediaQuery.sizeOf(context).height * 0.28;
 
     return Scaffold(
       backgroundColor: AppColors.darkBackground,
@@ -139,26 +139,30 @@ class _SignupScreenState extends State<SignupScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(
-                          Icons.terrain,
-                          size: 60,
-                          color: AppColors.primaryLight,
+                        const SizedBox(
+                          width: 48,
+                          height: 48,
+                          child: Icon(
+                            Icons.terrain,
+                            size: 48,
+                            color: AppColors.primaryLight,
+                          ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
                         Text(
                           'Join the Adventure',
                           style: GoogleFonts.poppins(
-                            fontSize: 28,
+                            fontSize: 24,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         Text(
                           'Create your explorer profile',
                           style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            color: AppColors.textSecondary,
+                            fontSize: 13,
+                            color: Colors.white60,
                           ),
                         ),
                       ],
@@ -178,7 +182,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                 ),
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
                   child: Form(
                     key: _formKey,
                     child: Column(
@@ -188,34 +192,34 @@ class _SignupScreenState extends State<SignupScreen> {
                           child: GestureDetector(
                             onTap: _showImageSourceSheet,
                             child: Container(
-                            width: 90,
-                            height: 90,
-                            decoration: BoxDecoration(
-                              color: AppColors.darkSurface,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: AppColors.primaryLight,
-                                width: 2,
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                color: AppColors.darkSurface,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: AppColors.primaryLight,
+                                  width: 2,
+                                ),
                               ),
-                            ),
-                            child: _profileImageFile != null
-                                ? ClipOval(
-                                    child: Image.file(
-                                      _profileImageFile!,
-                                      width: 90,
-                                      height: 90,
-                                      fit: BoxFit.cover,
+                              child: _profileImageFile != null
+                                  ? ClipOval(
+                                      child: Image.file(
+                                        _profileImageFile!,
+                                        width: 80,
+                                        height: 80,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    )
+                                  : const Icon(
+                                      Icons.camera_alt,
+                                      color: AppColors.primaryLight,
+                                      size: 22,
                                     ),
-                                  )
-                                : const Icon(
-                                    Icons.add_a_photo,
-                                    color: AppColors.primaryLight,
-                                    size: 30,
-                                  ),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 16),
                         AuthTextField(
                           controller: _nameController,
                           label: 'Full Name',
@@ -228,7 +232,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 10),
                         AuthTextField(
                           controller: _emailController,
                           label: 'Email',
@@ -245,7 +249,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 10),
                         AuthTextField(
                           controller: _phoneController,
                           label: 'Phone Number',
@@ -262,7 +266,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 10),
                         AuthTextField(
                           controller: _passwordController,
                           label: 'Password',
@@ -282,7 +286,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 10),
                         AuthTextField(
                           controller: _confirmPasswordController,
                           label: 'Confirm Password',
@@ -299,28 +303,36 @@ class _SignupScreenState extends State<SignupScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 10),
                         Row(
                           children: [
-                            Expanded(
-                              child: Divider(color: AppColors.textSecondary.withOpacity(0.5)),
+                            const Expanded(
+                              child: Divider(
+                                color: Color(0xFF2D4A35),
+                                thickness: 1,
+                              ),
                             ),
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 16),
                               child: Text(
-                                'Emergency Contact',
+                                'EMERGENCY CONTACT',
                                 style: GoogleFonts.poppins(
                                   color: AppColors.primaryLight,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w600,
+                                  letterSpacing: 1.5,
                                 ),
                               ),
                             ),
-                            Expanded(
-                              child: Divider(color: AppColors.textSecondary.withOpacity(0.5)),
+                            const Expanded(
+                              child: Divider(
+                                color: Color(0xFF2D4A35),
+                                thickness: 1,
+                              ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 10),
                         AuthTextField(
                           controller: _emergencyNameController,
                           label: 'Contact Name',
@@ -333,7 +345,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 10),
                         AuthTextField(
                           controller: _emergencyPhoneController,
                           label: 'Contact Phone',
@@ -351,7 +363,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 10),
                         AuthTextField(
                           controller: _relationController,
                           label: 'Relation',

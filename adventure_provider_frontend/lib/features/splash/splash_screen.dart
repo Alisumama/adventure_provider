@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../core/constants/app_routes.dart';
 import '../../core/theme/app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -14,7 +12,6 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
-  static const int _splashDurationMs = 3000;
   static const int _iconDurationMs = 800;
   static const int _appNameDelayMs = 300;
   static const int _appNameDurationMs = 400;
@@ -84,11 +81,7 @@ class _SplashScreenState extends State<SplashScreen>
       if (mounted) _controller.forward();
     });
 
-    Future.delayed(const Duration(milliseconds: _splashDurationMs), () {
-      if (mounted) {
-        Get.offAllNamed(AppRoutes.login);
-      }
-    });
+    // Navigation is handled by AuthController auto-login.
   }
 
   @override
@@ -115,71 +108,90 @@ class _SplashScreenState extends State<SplashScreen>
         ),
         child: SafeArea(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Spacer(flex: 2),
-              AnimatedBuilder(
-                animation: _controller,
-                builder: (context, child) {
-                  return FadeTransition(
-                    opacity: _iconFade,
-                    child: SlideTransition(
-                      position: _iconSlide,
-                      child: child,
-                    ),
-                  );
-                },
-                child: const Icon(
-                  Icons.terrain,
-                  size: 80,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 24),
-              AnimatedBuilder(
-                animation: _controller,
-                builder: (context, child) {
-                  return FadeTransition(
-                    opacity: _appNameFade,
-                    child: ScaleTransition(
-                      scale: _appNameScale,
-                      child: child,
-                    ),
-                  );
-                },
-                child: Text(
-                  'Adventure Providers',
-                  style: GoogleFonts.poppins(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AnimatedBuilder(
+                        animation: _controller,
+                        builder: (context, child) {
+                          return FadeTransition(
+                            opacity: _iconFade,
+                            child: SlideTransition(
+                              position: _iconSlide,
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: const SizedBox(
+                          width: 72,
+                          height: 72,
+                          child: Icon(
+                            Icons.terrain,
+                            size: 72,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      AnimatedBuilder(
+                        animation: _controller,
+                        builder: (context, child) {
+                          return FadeTransition(
+                            opacity: _appNameFade,
+                            child: ScaleTransition(
+                              scale: _appNameScale,
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: Text(
+                          'Adventure Providers',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      AnimatedBuilder(
+                        animation: _controller,
+                        builder: (context, child) {
+                          return FadeTransition(
+                            opacity: _taglineFade,
+                            child: child,
+                          );
+                        },
+                        child: Text(
+                          'EXPLORE. TRACK. SHARE.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            color: AppColors.primaryLight,
+                            letterSpacing: 3.0,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
-              AnimatedBuilder(
-                animation: _controller,
-                builder: (context, child) {
-                  return FadeTransition(
-                    opacity: _taglineFade,
-                    child: child,
-                  );
-                },
-                child: Text(
-                  'Explore. Track. Share.',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: Colors.white.withOpacity(0.8),
-                    letterSpacing: 2.0,
+              Padding(
+                padding: const EdgeInsets.only(bottom: 48),
+                child: Center(
+                  child: SizedBox(
+                    width: 80,
+                    height: 2,
+                    child: LinearProgressIndicator(
+                      minHeight: 2,
+                      color: AppColors.primaryLight,
+                      backgroundColor: Colors.transparent,
+                    ),
                   ),
-                ),
-              ),
-              const Spacer(flex: 2),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 48),
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2,
                 ),
               ),
             ],

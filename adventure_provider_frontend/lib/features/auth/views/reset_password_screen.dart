@@ -175,7 +175,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 10),
                         AuthTextField(
                           controller: _confirmController,
                           label: 'Confirm Password',

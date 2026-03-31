@@ -49,5 +49,7 @@
 		<true/>
 		<key>UIViewControllerBasedStatusBarAppearance</key>
 		<false/>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>Your location is used to record adventure routes while you track.</string>
 	</dict>
 </plist>

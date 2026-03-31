@@ -19,21 +19,22 @@ class AuthButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      height: 54,
+      height: 52,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
         gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
           colors: [
-            AppColors.primary,
             AppColors.primaryLight,
+            AppColors.primary,
           ],
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.4),
+            color: AppColors.primary.withValues(alpha: 0.4),
             blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -55,8 +56,9 @@ class AuthButton extends StatelessWidget {
                 : Text(
                     label,
                     style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
                       color: Colors.white,
                     ),
                   ),

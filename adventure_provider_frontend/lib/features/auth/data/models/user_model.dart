@@ -43,6 +43,7 @@ class UserModel {
   final String? email;
   final String? phone;
   final String? profileImage;
+  final String? coverImage;
   final String? bio;
   final EmergencyContactModel? emergencyContact;
   final int? totalTracks;
@@ -59,6 +60,7 @@ class UserModel {
     this.email,
     this.phone,
     this.profileImage,
+    this.coverImage,
     this.bio,
     this.emergencyContact,
     this.totalTracks,
@@ -77,6 +79,7 @@ class UserModel {
       email: json['email'] as String?,
       phone: json['phone'] as String?,
       profileImage: json['profileImage'] as String?,
+      coverImage: json['coverImage'] as String?,
       bio: json['bio'] as String?,
       emergencyContact: EmergencyContactModel.fromJson(
         json['emergencyContact'] as Map<String, dynamic>?,
@@ -99,6 +102,7 @@ class UserModel {
         if (email != null) 'email': email,
         if (phone != null) 'phone': phone,
         if (profileImage != null) 'profileImage': profileImage,
+        if (coverImage != null) 'coverImage': coverImage,
         if (bio != null) 'bio': bio,
         if (emergencyContact != null)
           'emergencyContact': emergencyContact!.toJson(),
@@ -117,6 +121,7 @@ class UserModel {
     String? email,
     String? phone,
     String? profileImage,
+    String? coverImage,
     String? bio,
     EmergencyContactModel? emergencyContact,
     int? totalTracks,
@@ -133,6 +138,7 @@ class UserModel {
       email: email ?? this.email,
       phone: phone ?? this.phone,
       profileImage: profileImage ?? this.profileImage,
+      coverImage: coverImage ?? this.coverImage,
       bio: bio ?? this.bio,
       emergencyContact: emergencyContact ?? this.emergencyContact,
       totalTracks: totalTracks ?? this.totalTracks,

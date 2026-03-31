@@ -1,6 +1,9 @@
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const bcrypt = require('bcryptjs');
 const transporter = require('../config/transporter');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'jwt-secret-change-in-production';
@@ -210,12 +213,196 @@ async function refreshToken(req, res) {
 }
 
 /**
+ * POST /refresh
+ * Body: refreshToken. Returns new accessToken (7d) and user.
+ */
+async function refreshAccessToken(req, res) {
+  try {
+    const { refreshToken: token } = req.body;
+    if (!token) {
+      return res.status(401).json({ message: 'Refresh token required' });
+    }
+
+    // Refresh tokens are signed with the refresh secret.
+    const decoded = jwt.verify(token, JWT_REFRESH_SECRET);
+    const user = await User.findById(decoded.id);
+    if (!user || user.isActive === false) {
+      return res.status(401).json({ message: 'Invalid refresh token' });
+    }
+
+    const accessToken = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '7d' });
+    const userObj = user.toJSON ? user.toJSON() : user.toObject();
+    return res.status(200).json({ user: userObj, accessToken });
+  } catch (err) {
+    return res.status(401).json({ message: 'Invalid refresh token' });
+  }
+}
+
+/**
  * GET /me
  * Requires protect middleware to set req.user.
  */
 function getMe(req, res) {
   const user = req.user.toJSON ? req.user.toJSON() : req.user.toObject();
   return res.status(200).json({ user });
+}
+
+/**
+ * GET /profile
+ * Protected. Returns current user's full profile (no password / OTP fields).
+ */
+function getProfile(req, res) {
+  const user = req.user.toJSON ? req.user.toJSON() : req.user.toObject();
+  return res.status(200).json({ user });
+}
+
+/**
+ * PUT /profile
+ * Protected. Updates only provided fields: name, phone, bio, emergencyContact.
+ */
+async function updateProfile(req, res) {
+  try {
+    const { name, phone, bio, emergencyContact } = req.body;
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (name !== undefined) user.name = name;
+    if (phone !== undefined) user.phone = phone;
+    if (bio !== undefined) user.bio = bio;
+    if (emergencyContact !== undefined) {
+      user.emergencyContact = emergencyContact;
+    }
+
+    await user.save();
+    const userObj = user.toJSON ? user.toJSON() : user.toObject();
+    return res.status(200).json({ user: userObj });
+  } catch (err) {
+    return res.status(500).json({ message: err.message || 'Update failed' });
+  }
+}
+
+/**
+ * Deletes a previously stored upload. Accepts full URL (legacy) or relative path
+ * e.g. uploads/profiles/file.jpg
+ */
+async function safeDeleteStoredUpload(stored, folderKey) {
+  if (!stored || typeof stored !== 'string') return;
+  const prefixRel = `uploads/${folderKey}/`;
+  const prefixUrl = `/uploads/${folderKey}/`;
+  try {
+    let relative;
+    if (stored.startsWith('http://') || stored.startsWith('https://')) {
+      const parsed = new URL(stored);
+      const pathname = parsed.pathname || '';
+      if (!pathname.startsWith(prefixUrl)) return;
+      relative = pathname.replace(/^\//, '');
+    } else {
+      const s = stored.replace(/^\//, '');
+      if (!s.startsWith(prefixRel)) return;
+      relative = s;
+    }
+    const diskPath = path.join(__dirname, '..', relative);
+    await fs.promises.unlink(diskPath);
+  } catch (err) {
+    if (err && err.code === 'ENOENT') return;
+  }
+}
+
+/**
+ * PUT /profile/image
+ * Protected. Multipart form-data: image file.
+ */
+async function updateProfileImage(req, res) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Image file is required' });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const relativePath = `uploads/profiles/${req.file.filename}`;
+
+    await safeDeleteStoredUpload(user.profileImage, 'profiles');
+
+    user.profileImage = relativePath;
+    await user.save();
+    const userObj = user.toJSON ? user.toJSON() : user.toObject();
+    return res.status(200).json({ user: userObj });
+  } catch (err) {
+    return res.status(500).json({ message: err.message || 'Update failed' });
+  }
+}
+
+/**
+ * PUT /profile/cover
+ * Protected. Multipart form-data: image file.
+ */
+async function updateCoverImage(req, res) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Image file is required' });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const relativePath = `uploads/covers/${req.file.filename}`;
+
+    await safeDeleteStoredUpload(user.coverImage, 'covers');
+
+    user.coverImage = relativePath;
+    await user.save();
+    const userObj = user.toJSON ? user.toJSON() : user.toObject();
+    return res.status(200).json({ user: userObj });
+  } catch (err) {
+    return res.status(500).json({ message: err.message || 'Update failed' });
+  }
+}
+
+/**
+ * PUT /change-password
+ * Protected. Body: currentPassword, newPassword.
+ */
+async function changePassword(req, res) {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'currentPassword and newPassword are required' });
+    }
+
+    const user = await User.findById(req.user._id).select('+password');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const ok = await bcrypt.compare(currentPassword, user.password);
+    if (!ok) {
+      return res.status(401).json({ message: 'Current password is incorrect' });
+    }
+
+    user.password = newPassword; // hashed by userSchema pre-save hook
+    await user.save();
+    return res.status(200).json({ message: 'Password changed successfully' });
+  } catch (err) {
+    return res.status(500).json({ message: err.message || 'Change password failed' });
+  }
+}
+
+/**
+ * DELETE /account
+ * Protected. Soft delete: sets isActive=false.
+ */
+async function deleteAccount(req, res) {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user.isActive = false;
+    await user.save({ validateBeforeSave: false });
+    return res.status(200).json({ message: 'Account deleted successfully' });
+  } catch (err) {
+    return res.status(500).json({ message: err.message || 'Delete account failed' });
+  }
 }
 
 module.exports = {
@@ -225,5 +412,12 @@ module.exports = {
   verifyOtp,
   resetPassword,
   refreshToken,
+  refreshAccessToken,
   getMe,
+  getProfile,
+  updateProfile,
+  updateProfileImage,
+  updateCoverImage,
+  changePassword,
+  deleteAccount,
 };

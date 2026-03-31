@@ -36,7 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<AuthController>();
-    final topHeight = MediaQuery.sizeOf(context).height * 0.4;
+    final topHeight = MediaQuery.sizeOf(context).height * 0.28;
 
     return Scaffold(
       backgroundColor: AppColors.darkBackground,
@@ -67,26 +67,30 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(
-                          Icons.terrain,
-                          size: 60,
-                          color: AppColors.primaryLight,
+                        const SizedBox(
+                          width: 48,
+                          height: 48,
+                          child: Icon(
+                            Icons.terrain,
+                            size: 48,
+                            color: AppColors.primaryLight,
+                          ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
                         Text(
                           'Welcome Back',
                           style: GoogleFonts.poppins(
-                            fontSize: 28,
+                            fontSize: 24,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         Text(
                           'Your adventure awaits',
                           style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            color: AppColors.textSecondary,
+                            fontSize: 13,
+                            color: Colors.white60,
                           ),
                         ),
                       ],
@@ -128,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 10),
                         AuthTextField(
                           controller: _passwordController,
                           label: 'Password',

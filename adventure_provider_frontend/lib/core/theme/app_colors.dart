@@ -17,4 +17,16 @@ class AppColors {
   static const Color textSecondary = Color(0xFF6B7280);
   static const Color darkBackground = Color(0xFF0D1117);
   static const Color darkSurface = Color(0xFF161B22);
+
+  /// Home header bottom border (light sage line).
+  static const Color homeHeaderBorder = Color(0xFFE2EDE8);
+
+  /// Soft grey for home greeting line.
+  static const Color homeGreetingGrey = Color(0xFF9CA3AF);
+
+  /// Circular notification button background on home header.
+  static const Color homeHeaderIconFill = Color(0xFFE8F5EF);
+
+  /// Mock map tile behind the home quick map preview.
+  static const Color mapPreviewBackground = Color(0xFFDDE8E0);
 }

@@ -1,5 +1,3 @@
-import 'dart:io' show Platform;
-
 /// Base URL for the backend API.
 ///
 /// - **Android emulator**: `10.0.2.2` (emulator's alias for host machine's localhost).
@@ -23,7 +21,28 @@ class ApiConfig {
     }
     // Android emulator uses 10.0.2.2 to reach host localhost; iOS simulator uses 127.0.0.1
     // final host = Platform.isAndroid ? '10.0.2.2' : '127.0.0.1';
-    final host =  '192.168.1.102';
+    final host = '192.168.1.103';
     return 'http://$host:$_port$_path';
+  }
+
+  /// Server origin for static files (no `/api`). Uploads are served at `[origin]/uploads/...`.
+  static String get serverOrigin {
+    if (baseUrlOverride != null && baseUrlOverride!.isNotEmpty) {
+      final raw = baseUrlOverride!.trim();
+      final uri = Uri.parse(raw.endsWith('/') ? raw.substring(0, raw.length - 1) : raw);
+      return uri.origin;
+    }
+    final host = '192.168.1.103';
+    return 'http://$host:$_port';
+  }
+
+  /// `uploads/profiles/x.jpg` → full URL; legacy absolute URLs are returned as-is.
+  static String? resolveMediaUrl(String? stored) {
+    if (stored == null || stored.isEmpty) return null;
+    final s = stored.trim();
+    if (s.startsWith('http://') || s.startsWith('https://')) return s;
+    final path = s.startsWith('/') ? s.substring(1) : s;
+    final origin = serverOrigin.replaceAll(RegExp(r'/+$'), '');
+    return '$origin/$path';
   }
 }
