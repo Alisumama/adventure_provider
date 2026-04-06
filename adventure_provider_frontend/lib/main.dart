@@ -18,7 +18,10 @@ import 'features/profile/views/change_password_screen.dart';
 import 'features/profile/views/profile_screen.dart';
 import 'features/shell/main_shell_screen.dart';
 import 'features/splash/splash_screen.dart';
+import 'features/track/views/live_map_screen.dart';
 import 'features/track/views/record_track_screen.dart';
+import 'features/track/views/track_detail_screen.dart';
+import 'features/track/views/track_map_view_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -99,15 +102,30 @@ class MyApp extends StatelessWidget {
         ),
         GetPage(
           name: AppRoutes.trackDetailPattern,
+          page: () => const TrackDetailScreen(),
+          binding: AppRoutes.bindingTrack(),
+        ),
+        GetPage(
+          name: AppRoutes.trackMapViewPattern,
+          page: () => const TrackMapViewScreen(),
+          binding: AppRoutes.bindingTrack(),
+        ),
+        GetPage(
+          name: AppRoutes.editTrackPattern,
           page: () {
             final id = Get.parameters['id'] ?? '';
-            return _PlaceholderScreen('${AppRoutes.trackDetail}/$id');
+            return _PlaceholderScreen('Edit track $id');
           },
           binding: AppRoutes.bindingTrack(),
         ),
         GetPage(
           name: AppRoutes.recordTrack,
           page: () => const RecordTrackScreen(),
+          binding: AppRoutes.bindingTrack(),
+        ),
+        GetPage(
+          name: AppRoutes.liveMapRecording,
+          page: () => const LiveMapScreen(),
           binding: AppRoutes.bindingTrack(),
         ),
         GetPage(

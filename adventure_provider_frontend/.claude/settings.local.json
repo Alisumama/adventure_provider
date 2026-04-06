@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sips -g all /Users/alihassanabbasi/code/personal/sumama_fyp/adventure_provider/adventure_provider_frontend/assets/app_icon.png)",
+      "Bash(dart run:*)"
+    ]
+  }
+}

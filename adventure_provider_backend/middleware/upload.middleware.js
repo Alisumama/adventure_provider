@@ -65,8 +65,46 @@ const uploadCommunityImage = multer({
   fileFilter,
 });
 
+const trackFlagStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = 'uploads/tracks/flags';
+    fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
+  },
+});
+
+const uploadTrackFlagImage = multer({
+  storage: trackFlagStorage,
+  limits: { fileSize: MAX_FILE_SIZE },
+  fileFilter,
+});
+
+const trackPhotoStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = 'uploads/tracks/photos';
+    fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
+  },
+});
+
+const uploadTrackPhoto = multer({
+  storage: trackPhotoStorage,
+  limits: { fileSize: MAX_FILE_SIZE },
+  fileFilter,
+});
+
 module.exports = {
   uploadProfileImage,
   uploadCoverImage,
   uploadCommunityImage,
+  uploadTrackFlagImage,
+  uploadTrackPhoto,
 };

@@ -36,12 +36,14 @@ const lineStringSchema = new mongoose.Schema(
 
 const flagSchema = new mongoose.Schema(
   {
+    type: { type: String, trim: true },
     title: { type: String, trim: true },
     description: { type: String, trim: true },
     photo: { type: String, trim: true },
+    images: [{ type: String, trim: true }],
     location: pointSchema,
   },
-  { _id: false }
+  { _id: true }
 );
 
 const trackSchema = new mongoose.Schema(
@@ -83,6 +85,12 @@ const trackSchema = new mongoose.Schema(
     steps: { type: Number, default: 0 },
     calories: { type: Number, default: 0 },
     isPublic: { type: Boolean, default: true },
+    isTesting: { type: Boolean, default: false },
+    status: {
+      type: String,
+      enum: ['recording', 'completed', 'draft'],
+      default: 'recording',
+    },
     coverImage: { type: String, trim: true },
     geoPath: lineStringSchema,
     startPoint: pointSchema,
@@ -91,6 +99,7 @@ const trackSchema = new mongoose.Schema(
     photos: [{ type: String, trim: true }],
     likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     saves: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    isComplete: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

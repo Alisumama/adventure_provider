@@ -51,5 +51,9 @@
 		<false/>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>Your location is used to record adventure routes while you track.</string>
+		<key>NSCameraUsageDescription</key>
+		<string>Take a photo to attach to your track flag.</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>Choose a photo from your library to attach to your track flag.</string>
 	</dict>
 </plist>

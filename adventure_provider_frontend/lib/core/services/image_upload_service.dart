@@ -49,6 +49,16 @@ class ImageUploadService {
     );
   }
 
+  /// POST /tracks/:trackId/flag-image — multipart field `image`; response `{ url }`.
+  Future<String> uploadTrackFlagImage(String trackId, XFile imageFile) {
+    return _uploadPostJsonUrl(
+      path: '/tracks/$trackId/flag-image',
+      fieldName: 'image',
+      imageFile: imageFile,
+      resultKey: 'url',
+    );
+  }
+
   Future<Uint8List> _compressPickToUnder1Mb(XFile imageFile) async {
     final raw = await imageFile.readAsBytes();
     try {
@@ -142,6 +152,75 @@ class ImageUploadService {
     final url = user[resultKey];
     if (url is! String || url.isEmpty) {
       throw Exception('Server did not return $resultKey URL.');
+    }
+
+    return url;
+  }
+
+  /// POST multipart; expects JSON `{ [resultKey]: "<url string>" }`.
+  Future<String> _uploadPostJsonUrl({
+    required String path,
+    required String fieldName,
+    required XFile imageFile,
+    required String resultKey,
+  }) async {
+    final token = await _storage.read(key: _kAccessToken);
+    if (token == null || token.isEmpty) {
+      throw Exception('Not signed in. Please log in again.');
+    }
+
+    final uri = Uri.parse('${ApiConfig.baseUrl}$path');
+    final request = http.MultipartRequest('POST', uri);
+    request.headers['Authorization'] = 'Bearer $token';
+
+    final compressed = await _compressPickToUnder1Mb(imageFile);
+    final baseName = p.basenameWithoutExtension(imageFile.path);
+    final filename = '${baseName.isEmpty ? 'photo' : baseName}.jpg';
+
+    request.files.add(
+      http.MultipartFile.fromBytes(
+        fieldName,
+        compressed,
+        filename: filename,
+      ),
+    );
+
+    http.StreamedResponse streamed;
+    try {
+      streamed = await request.send().timeout(
+        const Duration(seconds: 60),
+        onTimeout: () => throw Exception('Upload timed out. Try again.'),
+      );
+    } on SocketException {
+      throw Exception('No network connection. Check your internet and try again.');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Upload failed: $e');
+    }
+
+    final body = await streamed.stream
+        .bytesToString()
+        .timeout(const Duration(seconds: 60), onTimeout: () {
+      throw Exception('Upload timed out. Try again.');
+    });
+
+    Map<String, dynamic>? json;
+    try {
+      json = jsonDecode(body) as Map<String, dynamic>?;
+    } catch (_) {
+      json = null;
+    }
+
+    if (streamed.statusCode < 200 || streamed.statusCode >= 300) {
+      final message = json != null && json['message'] != null
+          ? json['message'].toString()
+          : 'Upload failed (${streamed.statusCode})';
+      throw Exception(message);
+    }
+
+    final url = json?[resultKey];
+    if (url is! String || url.isEmpty) {
+      throw Exception('Invalid response from server.');
     }
 
     return url;

@@ -24,7 +24,19 @@ class AppRoutes {
   static const String trackDetail = '/track-detail';
 
   static String trackDetailNamed(String id) => '/track-detail/$id';
+
+  /// Full-screen map for one track (polyline + flags).
+  static const String trackMapViewPattern = '/track-map/:id';
+
+  static String trackMapViewNamed(String id) => '/track-map/$id';
+
+  /// Edit track (`Get.parameters['id']`). Placeholder until editor is implemented.
+  static const String editTrackPattern = '/edit-track/:id';
+
+  static String editTrackNamed(String id) => '/edit-track/$id';
   static const String recordTrack = '/record-track';
+  /// Live OSM map while recording (Socket.io + draft track).
+  static const String liveMapRecording = '/live-map-recording';
   static const String liveSession = '/live-session';
   static const String groups = '/groups';
   static const String events = '/events';

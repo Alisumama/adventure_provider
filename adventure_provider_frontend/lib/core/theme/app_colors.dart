@@ -29,4 +29,7 @@ class AppColors {
 
   /// Mock map tile behind the home quick map preview.
   static const Color mapPreviewBackground = Color(0xFFDDE8E0);
+
+  /// Track flag: water stream (blue, distinct from forest primaries).
+  static const Color flagWaterStream = Color(0xFF1E88E5);
 }

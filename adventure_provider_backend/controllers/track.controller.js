@@ -1,8 +1,32 @@
+const fs = require('fs');
+const path = require('path');
 const mongoose = require('mongoose');
 const Track = require('../models/track.model');
 
 function isValidObjectId(id) {
   return mongoose.Types.ObjectId.isValid(id);
+}
+
+/**
+ * Removes a file stored under `uploads/...` (relative path or full URL to this server).
+ * Ignores missing files and non-local URLs.
+ */
+async function unlinkUploadSafe(stored) {
+  if (!stored || typeof stored !== 'string') return;
+  try {
+    let relative = stored.trim();
+    if (relative.startsWith('http://') || relative.startsWith('https://')) {
+      const u = new URL(relative);
+      relative = (u.pathname || '').replace(/^\//, '');
+    } else {
+      relative = relative.replace(/^\//, '');
+    }
+    if (!relative.startsWith('uploads/')) return;
+    const diskPath = path.join(__dirname, '..', relative);
+    await fs.promises.unlink(diskPath);
+  } catch (err) {
+    if (err && err.code === 'ENOENT') return;
+  }
 }
 
 /**
@@ -49,6 +73,35 @@ async function createTrack(req, res) {
       return res.status(400).json({ message: err.message });
     }
     return res.status(500).json({ message: err.message || 'Failed to create track' });
+  }
+}
+
+/**
+ * POST /draft — minimal track for live recording (Socket.io room id). Body: title, description,
+ * type, difficulty, isPublic, isTesting.
+ */
+async function createDraftTrack(req, res) {
+  try {
+    const { title, description, type, difficulty, isPublic, isTesting } = req.body;
+
+    const track = await Track.create({
+      userId: req.user._id,
+      title,
+      description,
+      type,
+      difficulty,
+      isPublic: isPublic !== undefined ? Boolean(isPublic) : true,
+      isTesting: Boolean(isTesting),
+      status: 'recording',
+    });
+
+    return res.status(201).json(track);
+  } catch (err) {
+    console.error('createDraftTrack error:', err);
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ message: err.message });
+    }
+    return res.status(500).json({ message: err.message || 'Failed to create draft track' });
   }
 }
 
@@ -339,8 +392,272 @@ async function addPhoto(req, res) {
   }
 }
 
+/**
+ * POST /tracks/:id/flag-image — multipart field `image`. Owner only.
+ * Returns `{ url }` as a relative path (e.g. uploads/tracks/flags/...) for DB storage; clients resolve with their API origin.
+ */
+async function uploadTrackFlagImage(req, res) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Image file is required' });
+    }
+
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ message: 'Invalid track id' });
+    }
+
+    const track = await Track.findById(id);
+    if (!track) {
+      return res.status(404).json({ message: 'Track not found' });
+    }
+    if (!track.userId.equals(req.user._id)) {
+      return res.status(403).json({ message: 'Not allowed to modify this track' });
+    }
+
+    const relativePath = `uploads/tracks/flags/${req.file.filename}`;
+    return res.status(200).json({ url: relativePath });
+  } catch (err) {
+    console.error('uploadTrackFlagImage error:', err);
+    return res.status(500).json({ message: 'Could not upload image. Please try again.' });
+  }
+}
+
+/**
+ * POST /:id/photos — multipart field `photo`. Owner only.
+ */
+async function postTrackPhoto(req, res) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Photo file is required' });
+    }
+
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ message: 'Invalid track id' });
+    }
+
+    const track = await Track.findById(id);
+    if (!track) {
+      return res.status(404).json({ message: 'Track not found' });
+    }
+    if (!track.userId.equals(req.user._id)) {
+      return res.status(403).json({ message: 'Only the track owner can add photos' });
+    }
+
+    const relativePath = `uploads/tracks/photos/${req.file.filename}`;
+    track.photos.push(relativePath);
+    await track.save();
+    return res.status(200).json(track);
+  } catch (err) {
+    console.error('postTrackPhoto error:', err);
+    return res.status(500).json({ message: 'Could not save photo. Please try again.' });
+  }
+}
+
+/**
+ * DELETE /:id/photos/:photoIndex — owner only. Removes file from disk when stored under uploads/.
+ */
+async function deleteTrackPhoto(req, res) {
+  try {
+    const { id, photoIndex } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ message: 'Invalid track id' });
+    }
+    if (!/^\d+$/.test(String(photoIndex))) {
+      return res.status(400).json({ message: 'Invalid photo index' });
+    }
+    const idx = parseInt(photoIndex, 10);
+    if (idx < 0) {
+      return res.status(400).json({ message: 'Invalid photo index' });
+    }
+
+    const track = await Track.findById(id);
+    if (!track) {
+      return res.status(404).json({ message: 'Track not found' });
+    }
+    if (!track.userId.equals(req.user._id)) {
+      return res.status(403).json({ message: 'Only the track owner can remove photos' });
+    }
+    if (idx >= track.photos.length) {
+      return res.status(404).json({ message: 'Photo not found' });
+    }
+
+    const removed = track.photos[idx];
+    track.photos.splice(idx, 1);
+    await track.save();
+    await unlinkUploadSafe(removed);
+    return res.status(200).json(track);
+  } catch (err) {
+    console.error('deleteTrackPhoto error:', err);
+    return res.status(500).json({ message: 'Could not remove photo. Please try again.' });
+  }
+}
+
+/**
+ * POST /:id/flags — body: { type, description?, location: { lng, lat }, images?[] }. Owner only.
+ */
+async function postTrackFlag(req, res) {
+  try {
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ message: 'Invalid track id' });
+    }
+
+    const { type, description, location, images } = req.body;
+    if (type === undefined || type === null || String(type).trim() === '') {
+      return res.status(400).json({ message: 'type is required' });
+    }
+    const lat = location && location.lat;
+    const lng = location && location.lng;
+    if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) {
+      return res.status(400).json({ message: 'location with numeric lng and lat is required' });
+    }
+
+    const imagesArr = Array.isArray(images)
+      ? images.filter((x) => typeof x === 'string').map((x) => x.trim())
+      : [];
+
+    const track = await Track.findById(id);
+    if (!track) {
+      return res.status(404).json({ message: 'Track not found' });
+    }
+    if (!track.userId.equals(req.user._id)) {
+      return res.status(403).json({ message: 'Only the track owner can add flags' });
+    }
+
+    track.flags.push({
+      type: String(type).trim(),
+      description: description != null ? String(description) : '',
+      images: imagesArr,
+      location: {
+        type: 'Point',
+        coordinates: [Number(lng), Number(lat)],
+      },
+    });
+    await track.save();
+    return res.status(200).json(track);
+  } catch (err) {
+    console.error('postTrackFlag error:', err);
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ message: 'Invalid flag data' });
+    }
+    return res.status(500).json({ message: 'Could not add flag. Please try again.' });
+  }
+}
+
+/**
+ * PUT /:id/flags/:flagId — partial update: type, description, location, images. Owner only.
+ */
+async function putTrackFlag(req, res) {
+  try {
+    const { id, flagId } = req.params;
+    if (!isValidObjectId(id) || !isValidObjectId(flagId)) {
+      return res.status(400).json({ message: 'Invalid track or flag id' });
+    }
+
+    const track = await Track.findById(id);
+    if (!track) {
+      return res.status(404).json({ message: 'Track not found' });
+    }
+    if (!track.userId.equals(req.user._id)) {
+      return res.status(403).json({ message: 'Only the track owner can edit flags' });
+    }
+
+    const flag = track.flags.id(flagId);
+    if (!flag) {
+      return res.status(404).json({ message: 'Flag not found' });
+    }
+
+    const { type, description, location, images } = req.body;
+
+    if (type !== undefined) {
+      if (type === null || String(type).trim() === '') {
+        return res.status(400).json({ message: 'type cannot be empty' });
+      }
+      flag.type = String(type).trim();
+    }
+    if (description !== undefined) {
+      flag.description = description == null ? '' : String(description);
+    }
+    if (location !== undefined) {
+      const lat = location.lat;
+      const lng = location.lng;
+      if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) {
+        return res.status(400).json({ message: 'location must include numeric lng and lat' });
+      }
+      flag.location = {
+        type: 'Point',
+        coordinates: [Number(lng), Number(lat)],
+      };
+    }
+    if (images !== undefined) {
+      if (!Array.isArray(images)) {
+        return res.status(400).json({ message: 'images must be an array' });
+      }
+      const oldList = [...(flag.images || [])];
+      const newList = images.filter((x) => typeof x === 'string').map((x) => x.trim());
+      const removed = oldList.filter((x) => !newList.includes(x));
+      for (const r of removed) {
+        await unlinkUploadSafe(r);
+      }
+      flag.images = newList;
+    }
+
+    await track.save();
+    return res.status(200).json(track);
+  } catch (err) {
+    console.error('putTrackFlag error:', err);
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ message: 'Invalid flag data' });
+    }
+    return res.status(500).json({ message: 'Could not update flag. Please try again.' });
+  }
+}
+
+/**
+ * DELETE /:id/flags/:flagId — owner only. Deletes flag images from disk.
+ */
+async function deleteTrackFlag(req, res) {
+  try {
+    const { id, flagId } = req.params;
+    if (!isValidObjectId(id) || !isValidObjectId(flagId)) {
+      return res.status(400).json({ message: 'Invalid track or flag id' });
+    }
+
+    const track = await Track.findById(id);
+    if (!track) {
+      return res.status(404).json({ message: 'Track not found' });
+    }
+    if (!track.userId.equals(req.user._id)) {
+      return res.status(403).json({ message: 'Only the track owner can delete flags' });
+    }
+
+    const flag = track.flags.id(flagId);
+    if (!flag) {
+      return res.status(404).json({ message: 'Flag not found' });
+    }
+
+    const toUnlink = [...(flag.images || [])];
+    if (flag.photo) {
+      toUnlink.push(flag.photo);
+    }
+    for (const p of toUnlink) {
+      await unlinkUploadSafe(p);
+    }
+
+    track.flags.pull({ _id: flagId });
+    await track.save();
+    return res.status(200).json(track);
+  } catch (err) {
+    console.error('deleteTrackFlag error:', err);
+    return res.status(500).json({ message: 'Could not delete flag. Please try again.' });
+  }
+}
+
 module.exports = {
   createTrack,
+  createDraftTrack,
   getMyTracks,
   getNearbyTracks,
   getTrackById,
@@ -350,4 +667,10 @@ module.exports = {
   saveTrack,
   addFlag,
   addPhoto,
+  uploadTrackFlagImage,
+  postTrackPhoto,
+  deleteTrackPhoto,
+  postTrackFlag,
+  putTrackFlag,
+  deleteTrackFlag,
 };

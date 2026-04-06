@@ -9,17 +9,23 @@ class LatLng {
 class TrackFlag {
   const TrackFlag({
     this.id,
+    this.type,
     required this.title,
     this.description,
     this.photo,
+    this.images = const [],
     required this.lat,
     required this.lng,
   });
 
   final String? id;
+  /// Flag category (`rest_area`, `water_stream`, …); may be absent on legacy data.
+  final String? type;
   final String title;
   final String? description;
   final String? photo;
+  /// Image URLs or relative paths from the API.
+  final List<String> images;
   final double lat;
   final double lng;
 
@@ -36,11 +42,18 @@ class TrackFlag {
         ? fromLoc.longitude
         : (json['lng'] as num?)?.toDouble() ?? 0;
 
+    final imagesJson = json['images'] as List<dynamic>?;
+    final imagesList = imagesJson != null
+        ? imagesJson.map((e) => e.toString()).toList()
+        : const <String>[];
+
     return TrackFlag(
       id: json['_id']?.toString(),
+      type: json['type'] as String?,
       title: json['title'] as String? ?? '',
       description: json['description'] as String?,
       photo: json['photo'] as String?,
+      images: imagesList,
       lat: lat,
       lng: lng,
     );
@@ -49,14 +62,35 @@ class TrackFlag {
   /// Matches backend embedded flag shape (`location` is GeoJSON Point).
   Map<String, dynamic> toJson() => {
         if (id != null) '_id': id,
+        if (type != null) 'type': type,
         'title': title,
         if (description != null) 'description': description,
         if (photo != null) 'photo': photo,
+        if (images.isNotEmpty) 'images': images,
         'location': {
           'type': 'Point',
           'coordinates': [lng, lat],
         },
       };
+}
+
+/// Flag placed during live recording (optimistic UI + socket `add_flag`).
+class LiveTrackFlag {
+  const LiveTrackFlag({
+    this.id,
+    required this.type,
+    this.description,
+    this.images = const [],
+    required this.lat,
+    required this.lng,
+  });
+
+  final String? id;
+  final String type;
+  final String? description;
+  final List<String> images;
+  final double lat;
+  final double lng;
 }
 
 class TrackModel {
