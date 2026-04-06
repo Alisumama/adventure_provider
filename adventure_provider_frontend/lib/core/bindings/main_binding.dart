@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 
 import '../controllers/navigation_controller.dart';
+import 'community_binding.dart';
 import 'profile_binding.dart';
 import 'track_binding.dart';
 
@@ -15,5 +16,6 @@ class MainBinding extends Bindings {
     }
     TrackBinding().dependencies();
     ProfileBinding().dependencies();
+    CommunityBinding().dependencies();
   }
 }

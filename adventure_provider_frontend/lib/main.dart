@@ -9,6 +9,8 @@ import 'features/auth/views/login_screen.dart';
 import 'features/auth/views/reset_password_screen.dart';
 import 'features/auth/views/signup_screen.dart';
 import 'features/auth/views/verify_otp_screen.dart';
+import 'features/community/views/community_detail_screen.dart';
+import 'features/community/views/create_community_screen.dart';
 import 'features/profile/views/change_password_screen.dart';
 import 'features/profile/views/profile_screen.dart';
 import 'features/shell/main_shell_screen.dart';
@@ -99,6 +101,16 @@ class MyApp extends StatelessWidget {
           name: AppRoutes.recordTrack,
           page: () => const RecordTrackScreen(),
           binding: AppRoutes.bindingTrack(),
+        ),
+        GetPage(
+          name: AppRoutes.communityDetailPattern,
+          page: () => const CommunityDetailScreen(),
+          binding: AppRoutes.bindingCommunity(),
+        ),
+        GetPage(
+          name: AppRoutes.createCommunity,
+          page: () => const CreateCommunityScreen(),
+          binding: AppRoutes.bindingCommunity(),
         ),
         GetPage(
           name: AppRoutes.liveSession,

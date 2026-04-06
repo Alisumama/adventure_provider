@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 
+import '../bindings/community_binding.dart';
 import '../bindings/main_binding.dart';
 import '../bindings/profile_binding.dart';
 import '../bindings/track_binding.dart';
@@ -29,6 +30,13 @@ class AppRoutes {
   static const String events = '/events';
   static const String profile = '/profile';
 
+  /// Named route pattern for community detail.
+  static const String communityDetailPattern = '/community-detail/:id';
+  static const String communityDetail = '/community-detail';
+  static String communityDetailNamed(String id) => '/community-detail/$id';
+
+  static const String createCommunity = '/create-community';
+
   /// [GetPage.binding] for [home]: [NavigationController], [TrackRepository], [TrackController].
   static Bindings bindingHome() => MainBinding();
 
@@ -37,4 +45,7 @@ class AppRoutes {
 
   /// [GetPage.binding] for profile flows.
   static Bindings bindingProfile() => ProfileBinding();
+
+  /// [GetPage.binding] for community flows.
+  static Bindings bindingCommunity() => CommunityBinding();
 }

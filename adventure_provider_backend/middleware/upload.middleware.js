@@ -34,6 +34,16 @@ const coverStorage = multer.diskStorage({
   },
 });
 
+const communityImageStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/communities/');
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
+  },
+});
+
 const uploadProfileImage = multer({
   storage: profileStorage,
   limits: { fileSize: MAX_FILE_SIZE },
@@ -46,4 +56,10 @@ const uploadCoverImage = multer({
   fileFilter,
 });
 
-module.exports = { uploadProfileImage, uploadCoverImage };
+const uploadCommunityImage = multer({
+  storage: communityImageStorage,
+  limits: { fileSize: MAX_FILE_SIZE },
+  fileFilter,
+});
+
+module.exports = { uploadProfileImage, uploadCoverImage, uploadCommunityImage };

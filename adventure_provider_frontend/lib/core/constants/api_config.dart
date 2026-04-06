@@ -21,7 +21,7 @@ class ApiConfig {
     }
     // Android emulator uses 10.0.2.2 to reach host localhost; iOS simulator uses 127.0.0.1
     // final host = Platform.isAndroid ? '10.0.2.2' : '127.0.0.1';
-    final host = '192.168.1.103';
+    final host = '10.30.82.216';
     return 'http://$host:$_port$_path';
   }
 
@@ -32,7 +32,7 @@ class ApiConfig {
       final uri = Uri.parse(raw.endsWith('/') ? raw.substring(0, raw.length - 1) : raw);
       return uri.origin;
     }
-    final host = '192.168.1.103';
+    final host = '10.30.82.216';
     return 'http://$host:$_port';
   }
 
