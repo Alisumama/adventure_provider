@@ -7,11 +7,7 @@ import '../data/models/user_model.dart';
 import '../data/repositories/auth_repository.dart';
 
 class AuthController extends GetxController {
-  AuthController({
-    required AuthRepository repository,
-    required FlutterSecureStorage storage,
-  })  : _repository = repository,
-        _storage = storage;
+  AuthController({required AuthRepository repository, required FlutterSecureStorage storage}) : _repository = repository, _storage = storage;
 
   final AuthRepository _repository;
   final FlutterSecureStorage _storage;
@@ -123,24 +119,11 @@ class AuthController extends GetxController {
     }
   }
 
-  Future<void> register({
-    required String name,
-    required String email,
-    required String password,
-    String? phone,
-    EmergencyContactModel? emergencyContact,
-    String? profileImagePath,
-  }) async {
+  Future<void> register({required String name, required String email, required String password, String? phone, EmergencyContactModel? emergencyContact, String? profileImagePath}) async {
     errorMessage.value = '';
     isLoading.value = true;
     try {
-      final session = await _repository.register(
-        name: name,
-        email: email,
-        password: password,
-        phone: phone,
-        emergencyContact: emergencyContact,
-      );
+      final session = await _repository.register(name: name, email: email, password: password, phone: phone, emergencyContact: emergencyContact);
       if (session != null) {
         user.value = session.user;
         await _storage.write(key: _kAccessToken, value: session.accessToken);
@@ -148,7 +131,7 @@ class AuthController extends GetxController {
         _setAuthHeader(session.accessToken);
         Get.offAllNamed(AppRoutes.home);
       }
-    } catch (e) {
+    } on DioException catch (e) {
       errorMessage.value = e.toString().replaceFirst('Exception: ', '');
     } finally {
       isLoading.value = false;
@@ -193,23 +176,16 @@ class AuthController extends GetxController {
         if (resendCooldown.value > 0) resendCooldown.value--;
       }
     }
+
     run();
   }
 
-  Future<void> resetPassword({
-    required String email,
-    required String otp,
-    required String newPassword,
-  }) async {
+  Future<void> resetPassword({required String email, required String otp, required String newPassword}) async {
     errorMessage.value = '';
     successMessage.value = '';
     isLoading.value = true;
     try {
-      await _repository.resetPassword(
-        email: email,
-        otp: otp,
-        newPassword: newPassword,
-      );
+      await _repository.resetPassword(email: email, otp: otp, newPassword: newPassword);
       successMessage.value = 'Password reset successful';
     } catch (e) {
       errorMessage.value = e.toString().replaceFirst('Exception: ', '');

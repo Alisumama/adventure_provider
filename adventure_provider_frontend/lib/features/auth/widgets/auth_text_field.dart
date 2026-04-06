@@ -15,6 +15,8 @@ class AuthTextField extends StatelessWidget {
     this.keyboardType = TextInputType.text,
     this.validator,
     this.maxLines = 1,
+    this.minLines,
+    this.fillColor,
   });
 
   final TextEditingController controller;
@@ -27,6 +29,9 @@ class AuthTextField extends StatelessWidget {
   final TextInputType keyboardType;
   final String? Function(String?)? validator;
   final int maxLines;
+  final int? minLines;
+  /// When null, uses the default auth screen fill color.
+  final Color? fillColor;
 
   @override
   Widget build(BuildContext context) {
@@ -38,6 +43,7 @@ class AuthTextField extends StatelessWidget {
       obscureText: isPassword && !isPasswordVisible,
       keyboardType: keyboardType,
       validator: validator,
+      minLines: minLines,
       maxLines: maxLines,
       style: const TextStyle(
         fontSize: 14,
@@ -71,7 +77,7 @@ class AuthTextField extends StatelessWidget {
               )
             : null,
         filled: true,
-        fillColor: const Color(0xFF1A2A1F),
+        fillColor: fillColor ?? const Color(0xFF1A2A1F),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(borderRadius),
           borderSide: const BorderSide(color: defaultBorderColor, width: 1),

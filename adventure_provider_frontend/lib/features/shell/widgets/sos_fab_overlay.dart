@@ -1,30 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
+import '../../../core/constants/shell_layout.dart';
 import '../../../core/theme/app_colors.dart';
 import 'emergency_sos_bottom_sheet.dart';
 
-/// Red SOS FAB fixed above the bottom navigation bar (see [MainShellScreen] Stack).
-class SosFabOverlay extends StatelessWidget {
-  const SosFabOverlay({super.key});
+/// Emergency SOS FAB: uses [Material] + [CircleBorder] + animated elevation so
+/// the pulse shadow stays circular (plain [BoxDecoration.boxShadow] often reads as a square glow).
+class SosFab extends StatefulWidget {
+  const SosFab({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const Positioned(
-      right: 16,
-      bottom: 80,
-      child: _SosFab(),
-    );
-  }
+  State<SosFab> createState() => _SosFabState();
 }
 
-class _SosFab extends StatefulWidget {
-  const _SosFab();
-
-  @override
-  State<_SosFab> createState() => _SosFabState();
-}
-
-class _SosFabState extends State<_SosFab> with SingleTickerProviderStateMixin {
+class _SosFabState extends State<SosFab> with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
   @override
@@ -42,6 +32,11 @@ class _SosFabState extends State<_SosFab> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
+  void _onTap() {
+    HapticFeedback.mediumImpact();
+    showEmergencySosBottomSheet();
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -51,34 +46,29 @@ class _SosFabState extends State<_SosFab> with SingleTickerProviderStateMixin {
           parent: _controller,
           curve: Curves.easeInOut,
         ).value;
-        final blur = 6 + t * 14;
-        final spread = t * 4;
-        final alpha = 0.26 + t * 0.38;
+        final elevation = 4.0 + t * 12.0;
+
         return Material(
-          color: Colors.transparent,
+          color: AppColors.danger,
+          shape: const CircleBorder(),
+          clipBehavior: Clip.antiAlias,
+          elevation: elevation,
+          shadowColor: AppColors.danger.withValues(alpha: 0.55),
+          surfaceTintColor: Colors.transparent,
+          type: MaterialType.button,
           child: InkWell(
-            onTap: showEmergencySosBottomSheet,
+            onTap: _onTap,
             customBorder: const CircleBorder(),
-            child: Ink(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.danger,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.danger.withValues(alpha: alpha),
-                    blurRadius: blur,
-                    spreadRadius: spread,
-                  ),
-                ],
-              ),
-              child: const Center(
-                child: Icon(
-                  Icons.sos,
-                  color: AppColors.surface,
-                  size: 26,
-                ),
+            splashColor: AppColors.surface.withValues(alpha: 0.2),
+            highlightColor: AppColors.surface.withValues(alpha: 0.08),
+            child: SizedBox(
+              width: kSosFabDiameter,
+              height: kSosFabDiameter,
+              child: Icon(
+                Icons.sos,
+                color: AppColors.surface,
+                size: 26,
+                semanticLabel: 'SOS emergency',
               ),
             ),
           ),

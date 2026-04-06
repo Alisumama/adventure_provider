@@ -1,3 +1,4 @@
+const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 
@@ -46,4 +47,26 @@ const uploadCoverImage = multer({
   fileFilter,
 });
 
-module.exports = { uploadProfileImage, uploadCoverImage };
+const communityStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = 'uploads/communities';
+    fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
+  },
+});
+
+const uploadCommunityImage = multer({
+  storage: communityStorage,
+  limits: { fileSize: MAX_FILE_SIZE },
+  fileFilter,
+});
+
+module.exports = {
+  uploadProfileImage,
+  uploadCoverImage,
+  uploadCommunityImage,
+};

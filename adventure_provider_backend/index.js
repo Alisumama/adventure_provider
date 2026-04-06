@@ -3,7 +3,7 @@ require('dotenv').config();
 
 const app = require('./app');
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 9090;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/adventure_provider_db';
 
 mongoose
@@ -16,5 +16,5 @@ mongoose
   });
 
 app.listen(PORT, () => {
-  console.log(`Server is running on port: ${PORT}`);
+  console.log(`Server is running on port: ${PORT} — http://localhost:${PORT}/`);
 });

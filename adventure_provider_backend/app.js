@@ -18,4 +18,7 @@ app.use('/api/auth', authRoutes);
 const trackRoutes = require('./routes/track.routes');
 app.use('/api/tracks', trackRoutes);
 
+const communityRoutes = require('./routes/community.routes');
+app.use('/api/community', communityRoutes);
+
 module.exports = app;

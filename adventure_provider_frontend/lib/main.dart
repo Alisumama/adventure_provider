@@ -9,6 +9,11 @@ import 'features/auth/views/login_screen.dart';
 import 'features/auth/views/reset_password_screen.dart';
 import 'features/auth/views/signup_screen.dart';
 import 'features/auth/views/verify_otp_screen.dart';
+import 'features/community/views/community_detail_screen.dart';
+import 'features/community/views/community_members_screen.dart';
+import 'features/community/views/community_screen.dart';
+import 'features/community/views/community_settings_screen.dart';
+import 'features/community/views/create_community_screen.dart';
 import 'features/profile/views/change_password_screen.dart';
 import 'features/profile/views/profile_screen.dart';
 import 'features/shell/main_shell_screen.dart';
@@ -61,6 +66,11 @@ class MyApp extends StatelessWidget {
           binding: AppRoutes.bindingHome(),
           transition: Transition.fadeIn,
           transitionDuration: const Duration(milliseconds: 300),
+        ),
+        GetPage(
+          name: AppRoutes.community,
+          page: () => const CommunityScreen(),
+          binding: AppRoutes.bindingCommunity(),
         ),
         GetPage(
           name: AppRoutes.login,
@@ -116,6 +126,34 @@ class MyApp extends StatelessWidget {
           name: AppRoutes.profile,
           page: () => const ProfileScreen(),
           binding: AppRoutes.bindingProfile(),
+        ),
+        GetPage(
+          name: AppRoutes.communityDetailPattern,
+          page: () => const CommunityDetailScreen(),
+          binding: AppRoutes.bindingCommunity(),
+        ),
+        GetPage(
+          name: AppRoutes.editCommunityPattern,
+          page: () {
+            final id = Get.parameters['id'] ?? '';
+            return _PlaceholderScreen('Edit community $id');
+          },
+          binding: AppRoutes.bindingCommunity(),
+        ),
+        GetPage(
+          name: AppRoutes.createCommunity,
+          page: () => const CreateCommunityScreen(),
+          binding: AppRoutes.bindingCommunity(),
+        ),
+        GetPage(
+          name: AppRoutes.communitySettings,
+          page: () => const CommunitySettingsScreen(),
+          binding: AppRoutes.bindingCommunity(),
+        ),
+        GetPage(
+          name: AppRoutes.communityMembers,
+          page: () => const CommunityMembersScreen(),
+          binding: AppRoutes.bindingCommunity(),
         ),
       ],
     );
