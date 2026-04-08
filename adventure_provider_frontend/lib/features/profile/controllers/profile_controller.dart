@@ -2,8 +2,10 @@ import 'package:dio/dio.dart' as dio;
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/app_routes.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/services/image_upload_service.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../auth/data/models/user_model.dart';
@@ -273,6 +275,36 @@ class ProfileController extends GetxController {
     _dio.options.headers.remove('Authorization');
     profile.value = null;
     Get.offAllNamed(AppRoutes.login);
+  }
+
+  Future<void> launchEmergencyCall() async {
+    final phone = profile.value?.emergencyContact?.phone;
+    if (phone == null || phone.trim().isEmpty) {
+      Get.snackbar(
+        'No Emergency Contact',
+        'Please add an emergency contact number in your profile settings first.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppColors.warning,
+        colorText: AppColors.textPrimary,
+        icon: const Icon(Icons.warning_amber_rounded, color: Colors.white),
+        duration: const Duration(seconds: 4),
+      );
+      return;
+    }
+
+    final cleanedNumber = phone.replaceAll(RegExp(r'[^\d+]'), '');
+    final uri = Uri(scheme: 'tel', path: cleanedNumber);
+
+    if (!await canLaunchUrl(uri)) {
+      Get.snackbar(
+        'Error',
+        'Could not open dialpad. Please check your device settings.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   Future<void> deleteAccount() async {

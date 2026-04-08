@@ -3,14 +3,18 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../profile/controllers/profile_controller.dart';
 
 void showEmergencySosBottomSheet() {
   Get.bottomSheet<void>(
     const EmergencySosBottomSheet(),
+    isDismissible: true,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    isDismissible: true,
     enableDrag: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
   );
 }
 
@@ -19,19 +23,18 @@ class EmergencySosBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewPadding.bottom;
+    final profileController = Get.find<ProfileController>();
+    final bottomSafe = MediaQuery.of(context).padding.bottom;
 
     return Material(
       color: Colors.transparent,
       child: Container(
         decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          color: AppColors.darkBackground,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        padding: EdgeInsets.only(bottom: bottomInset + 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const SizedBox(height: 10),
             Center(
@@ -39,86 +42,207 @@ class EmergencySosBottomSheet extends StatelessWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.textSecondary.withValues(alpha: 0.25),
-                  borderRadius: BorderRadius.circular(999),
+                  color: const Color(0xFF444444),
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+              padding: const EdgeInsets.all(24),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text('🆘', style: TextStyle(fontSize: 52)),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Emergency Alert',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.bebasNeue(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w400,
-                      color: AppColors.danger,
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Text(
-                    'This will immediately notify your adventure group members and the emergency contacts on your profile with your last known location (when available) so they can assist you or alert local services.',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      height: 1.45,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: FilledButton(
-                      onPressed: () {
-                        Get.back<void>();
-                        // TODO: send emergency alert to group + emergency contacts
-                      },
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.danger,
-                        foregroundColor: AppColors.surface,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: AppColors.danger.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
                         ),
-                        textStyle: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
+                        alignment: Alignment.center,
+                        child: const Icon(
+                          Icons.sos,
+                          color: AppColors.danger,
+                          size: 26,
                         ),
                       ),
-                      child: const Text('📡 Send Emergency Alert Now'),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: OutlinedButton(
-                      onPressed: () => Get.back<void>(),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.textSecondary,
-                        side: BorderSide(
-                          color: AppColors.textSecondary.withValues(alpha: 0.35),
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        textStyle: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Emergency SOS',
+                              style: GoogleFonts.bebasNeue(
+                                fontSize: 22,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Obx(() {
+                              final p = profileController.profile.value;
+                              final name = p?.emergencyContact?.name?.trim();
+                              final subtitle = (name != null && name.isNotEmpty)
+                                  ? 'Calling: $name'
+                                  : 'No emergency contact saved';
+                              return Text(
+                                subtitle,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                ),
+                              );
+                            }),
+                          ],
                         ),
                       ),
-                      child: const Text("Cancel — I'm safe"),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  const Divider(
+                    color: Color(0xFF2A2A2A),
+                    height: 1,
+                    thickness: 1,
+                  ),
+                  const SizedBox(height: 16),
+                  Obx(() {
+                    final p = profileController.profile.value;
+                    final ec = p?.emergencyContact;
+                    if (ec == null) {
+                      return const SizedBox.shrink();
+                    }
+                    final name = ec.name?.trim();
+                    final phone = ec.phone?.trim();
+                    final relation = ec.relation?.trim();
+                    return Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.darkSurface,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Emergency Contact',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 11,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  (name != null && name.isNotEmpty)
+                                      ? name
+                                      : 'Not set',
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                Text(
+                                  (phone != null && phone.isNotEmpty)
+                                      ? phone
+                                      : '--',
+                                  style: GoogleFonts.spaceMono(
+                                    fontSize: 13,
+                                    color: AppColors.primaryLight,
+                                  ),
+                                ),
+                                if (relation != null && relation.isNotEmpty)
+                                  Text(
+                                    relation,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 11,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          const Icon(
+                            Icons.contact_phone_outlined,
+                            color: AppColors.primaryLight,
+                            size: 28,
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                  const SizedBox(height: 24),
+                  GestureDetector(
+                    onTap: () {
+                      Get.back<void>();
+                      Get.find<ProfileController>().launchEmergencyCall();
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      height: 54,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        gradient: const LinearGradient(
+                          colors: [
+                            AppColors.danger,
+                            Color(0xFFFF4444),
+                          ],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.danger.withValues(alpha: 0.4),
+                            blurRadius: 12,
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.phone, color: Colors.white, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Call Emergency Contact',
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  GestureDetector(
+                    onTap: () => Get.back<void>(),
+                    child: Container(
+                      width: double.infinity,
+                      height: 48,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E1E1E),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
+            SizedBox(height: bottomSafe + 8),
           ],
         ),
       ),

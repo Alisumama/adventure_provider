@@ -55,5 +55,9 @@
 		<string>Take a photo to attach to your track flag.</string>
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>Choose a photo from your library to attach to your track flag.</string>
+		<key>LSApplicationQueriesSchemes</key>
+		<array>
+			<string>tel</string>
+		</array>
 	</dict>
 </plist>

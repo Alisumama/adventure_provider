@@ -1,3 +1,5 @@
+import '../../../auth/data/models/user_model.dart';
+
 class ProfileModel {
   const ProfileModel({
     this.id,
@@ -31,6 +33,19 @@ class ProfileModel {
   final String? emergencyName;
   final String? emergencyPhone;
   final String? emergencyRelation;
+
+  bool get _hasEmergencyContactData =>
+      (emergencyName?.trim().isNotEmpty ?? false) ||
+      (emergencyPhone?.trim().isNotEmpty ?? false) ||
+      (emergencyRelation?.trim().isNotEmpty ?? false);
+
+  EmergencyContactModel? get emergencyContact => _hasEmergencyContactData
+      ? EmergencyContactModel(
+          name: emergencyName,
+          phone: emergencyPhone,
+          relation: emergencyRelation,
+        )
+      : null;
 
   String get totalDistanceKm => ((totalDistance ?? 0) / 1000).toStringAsFixed(1);
 
