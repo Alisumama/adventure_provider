@@ -7,9 +7,14 @@ import 'package:get/get.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/controllers/auth_controller.dart';
+import '../data/models/announcement_model.dart';
+import '../data/models/comment_model.dart';
 import '../data/models/community_member_model.dart';
 import '../data/models/community_model.dart';
+import '../data/models/community_event_model.dart';
 import '../data/models/community_post_model.dart';
+import '../data/models/community_rule_model.dart';
+import '../data/models/reaction_summary_model.dart';
 import '../data/repositories/community_repository.dart';
 
 class CommunityController extends GetxController {
@@ -23,12 +28,26 @@ class CommunityController extends GetxController {
 
   final RxList<CommunityPostModel> posts = <CommunityPostModel>[].obs;
 
+  final RxList<CommentModel> comments = <CommentModel>[].obs;
+  final RxList<CommunityEventModel> events = <CommunityEventModel>[].obs;
+  final RxList<AnnouncementModel> announcements = <AnnouncementModel>[].obs;
+  final RxList<CommunityRuleModel> rules = <CommunityRuleModel>[].obs;
+  final RxList<Map> mentionSuggestions = <Map>[].obs;
+
   final RxBool isLoading = false.obs;
   final RxBool isPostsLoading = false.obs;
   final RxBool isCreating = false.obs;
+  final RxBool isCommentsLoading = false.obs;
+  final RxBool isEventsLoading = false.obs;
+  final RxBool isAnnouncementsLoading = false.obs;
+  final RxBool isMentionLoading = false.obs;
+  final RxBool isSubmittingComment = false.obs;
 
   final RxString searchQuery = ''.obs;
   final RxString selectedCategory = ''.obs;
+  final RxString activePostId = ''.obs;
+  final RxBool showMentionDropdown = false.obs;
+  final RxInt selectedTab = 0.obs; // 0=Posts, 1=Announcements, 2=Events, 3=Rules
 
   final RxInt currentPostsPage = 1.obs;
   final RxBool hasMorePosts = true.obs;
@@ -41,6 +60,9 @@ class CommunityController extends GetxController {
   late final TextEditingController postContentController;
   late final TextEditingController editNameController;
   late final TextEditingController editDescriptionController;
+  late final TextEditingController commentController;
+  late final TextEditingController announcementTitleController;
+  late final TextEditingController announcementContentController;
 
   Timer? _searchDebounce;
 
@@ -100,6 +122,42 @@ class CommunityController extends GetxController {
     }).toList();
   }
 
+  List<CommentModel> _parseCommentList(Map<String, dynamic> json) {
+    final list = json['comments'] ?? json['data'] ?? json['results'];
+    if (list is! List) return [];
+    return list
+        .whereType<Map>()
+        .map((e) => CommentModel.fromJson(_asJsonMap(e)))
+        .toList();
+  }
+
+  List<CommunityEventModel> _parseEventList(Map<String, dynamic> json) {
+    final list = json['events'] ?? json['data'] ?? json['results'];
+    if (list is! List) return [];
+    return list
+        .whereType<Map>()
+        .map((e) => CommunityEventModel.fromJson(_asJsonMap(e)))
+        .toList();
+  }
+
+  List<AnnouncementModel> _parseAnnouncementList(Map<String, dynamic> json) {
+    final list = json['announcements'] ?? json['data'] ?? json['results'];
+    if (list is! List) return [];
+    return list
+        .whereType<Map>()
+        .map((e) => AnnouncementModel.fromJson(_asJsonMap(e)))
+        .toList();
+  }
+
+  List<CommunityRuleModel> _parseRulesList(Map<String, dynamic> json) {
+    final list = json['rules'] ?? json['data'] ?? json['results'];
+    if (list is! List) return [];
+    return list
+        .whereType<Map>()
+        .map((e) => CommunityRuleModel.fromJson(_asJsonMap(e)))
+        .toList();
+  }
+
   bool _parseHasMore(Map<String, dynamic> json, int fetchedCount) {
     final direct = json['hasMore'];
     if (direct is bool) return direct;
@@ -157,6 +215,9 @@ class CommunityController extends GetxController {
     postContentController = TextEditingController();
     editNameController = TextEditingController();
     editDescriptionController = TextEditingController();
+    commentController = TextEditingController();
+    announcementTitleController = TextEditingController();
+    announcementContentController = TextEditingController();
     fetchCommunities();
   }
 
@@ -167,6 +228,9 @@ class CommunityController extends GetxController {
     postContentController.dispose();
     editNameController.dispose();
     editDescriptionController.dispose();
+    commentController.dispose();
+    announcementTitleController.dispose();
+    announcementContentController.dispose();
     super.onClose();
   }
 
@@ -417,6 +481,35 @@ class CommunityController extends GetxController {
     }
   }
 
+  /// Used by the new create-post bottom sheet (supports optional trackId).
+  Future<void> createPostAdvanced(
+    String communityId, {
+    required String content,
+    String? trackId,
+  }) async {
+    final trimmed = content.trim();
+    if (trimmed.isEmpty) return;
+    try {
+      final map = await _repository.createPost(
+        communityId,
+        content: trimmed,
+        trackId: trackId,
+      );
+      final post = _postFromResponseMap(map);
+      posts.insert(0, post);
+      _patchCommunityById(
+        communityId,
+        (c) => c.copyWith(totalPosts: c.totalPosts + 1),
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        _cleanError(e),
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
+  }
+
   Future<void> toggleLikePost(String postId) async {
     final i = posts.indexWhere((p) => p.id == postId);
     if (i < 0) return;
@@ -491,6 +584,419 @@ class CommunityController extends GetxController {
         snackPosition: SnackPosition.BOTTOM,
       );
     }
+  }
+
+  // ── COMMENT METHODS ───────────────────────────────────
+  Future<void> fetchComments(String postId, {bool refresh = false}) async {
+    activePostId.value = postId;
+    isCommentsLoading.value = true;
+    try {
+      final map = await _repository.getComments(postId, page: 1);
+      final list = _parseCommentList(map);
+      if (refresh) {
+        comments.assignAll(list);
+      } else {
+        if (comments.isEmpty || activePostId.value != postId) {
+          comments.assignAll(list);
+        } else {
+          comments.addAll(list);
+        }
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        _cleanError(e),
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } finally {
+      isCommentsLoading.value = false;
+    }
+  }
+
+  Future<void> submitComment(String postId, List<Map> mentions) async {
+    final content = commentController.text.trim();
+    if (content.isEmpty) return;
+
+    isSubmittingComment.value = true;
+    try {
+      final map = await _repository.addComment(
+        postId,
+        content: content,
+        mentions: mentions,
+      );
+      final raw = map['comment'] ?? map['data'] ?? map;
+      final created = raw is Map ? CommentModel.fromJson(_asJsonMap(raw)) : null;
+      if (created != null) {
+        comments.insert(0, created);
+      }
+      commentController.clear();
+
+      final i = posts.indexWhere((p) => p.id == postId);
+      if (i >= 0) {
+        final p = posts[i];
+        posts[i] = p.copyWith(commentsCount: p.commentsCount + 1);
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        _cleanError(e),
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } finally {
+      isSubmittingComment.value = false;
+    }
+  }
+
+  Future<void> deleteComment(String commentId, String postId) async {
+    final confirmed = await Get.dialog<bool>(
+      AlertDialog(
+        title: const Text('Delete comment?'),
+        content: const Text('This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Get.back(result: true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await _repository.deleteComment(commentId);
+      comments.removeWhere((c) => c.id == commentId);
+
+      final i = posts.indexWhere((p) => p.id == postId);
+      if (i >= 0) {
+        final p = posts[i];
+        final next = p.commentsCount > 0 ? p.commentsCount - 1 : 0;
+        posts[i] = p.copyWith(commentsCount: next);
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        _cleanError(e),
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
+  }
+
+  Future<void> toggleCommentLike(String commentId) async {
+    final i = comments.indexWhere((c) => c.id == commentId);
+    if (i < 0) return;
+
+    final prev = comments[i];
+    final nextLiked = !prev.isLiked;
+    final nextCount =
+        nextLiked ? prev.likesCount + 1 : (prev.likesCount > 0 ? prev.likesCount - 1 : 0);
+    comments[i] = prev.copyWith(isLiked: nextLiked, likesCount: nextCount);
+
+    try {
+      final map = await _repository.toggleCommentLike(commentId);
+      final idx = comments.indexWhere((c) => c.id == commentId);
+      if (idx < 0) return;
+      final cur = comments[idx];
+      comments[idx] = cur.copyWith(
+        isLiked: map['isLiked'] as bool? ?? cur.isLiked,
+        likesCount: (map['likesCount'] as num?)?.toInt() ?? cur.likesCount,
+      );
+    } catch (e) {
+      comments[i] = prev;
+      Get.snackbar(
+        'Error',
+        _cleanError(e),
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
+  }
+
+  // ── REACTION METHODS ──────────────────────────────────
+  Future<void> reactToPost(String postId, String emoji) async {
+    try {
+      final map = await _repository.reactToPost(postId, emoji);
+      final i = posts.indexWhere((p) => p.id == postId);
+      if (i < 0) return;
+      final p = posts[i];
+
+      final countsRaw = map['reactionCounts'];
+      final countsMap = countsRaw is Map<String, dynamic>
+          ? countsRaw
+          : (countsRaw is Map ? Map<String, dynamic>.from(countsRaw) : const <String, dynamic>{});
+
+      final summary = ReactionSummaryModel.fromJson({
+        'fire': countsMap['fire'],
+        'heart': countsMap['heart'],
+        'clap': countsMap['clap'],
+        'wow': countsMap['wow'],
+        'haha': countsMap['haha'],
+        'strong': countsMap['strong'],
+        'userReaction': map['userReaction'],
+        'totalReactions': map['totalReactions'],
+      });
+
+      posts[i] = p.copyWith(reactionSummary: summary);
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        _cleanError(e),
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
+  }
+
+  // ── EVENT METHODS ─────────────────────────────────────
+  Future<void> fetchEvents(String communityId, {bool upcoming = true}) async {
+    isEventsLoading.value = true;
+    try {
+      final map = await _repository.getCommunityEvents(
+        communityId,
+        upcoming: upcoming,
+      );
+      events.assignAll(_parseEventList(map));
+    } catch (e) {
+      Get.snackbar('Error', _cleanError(e), snackPosition: SnackPosition.BOTTOM);
+    } finally {
+      isEventsLoading.value = false;
+    }
+  }
+
+  Future<void> joinEvent(String communityId, String eventId) async {
+    try {
+      await _repository.joinCommunityEvent(communityId, eventId);
+      final i = events.indexWhere((e) => e.id == eventId);
+      if (i >= 0) {
+        final ev = events[i];
+        events[i] = ev.copyWith(
+          isJoined: true,
+          participantsCount: ev.participantsCount + 1,
+        );
+      }
+      Get.snackbar(
+        'Success',
+        'You joined the event! 🎉',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (e) {
+      Get.snackbar('Error', _cleanError(e), snackPosition: SnackPosition.BOTTOM);
+    }
+  }
+
+  Future<void> leaveEvent(String communityId, String eventId) async {
+    final confirmed = await Get.dialog<bool>(
+      AlertDialog(
+        title: const Text('Leave event?'),
+        content: const Text('You will lose your spot in this event.'),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Get.back(result: true),
+            child: const Text('Leave'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await _repository.leaveCommunityEvent(communityId, eventId);
+      final i = events.indexWhere((e) => e.id == eventId);
+      if (i >= 0) {
+        final ev = events[i];
+        final next = ev.participantsCount > 0 ? ev.participantsCount - 1 : 0;
+        events[i] = ev.copyWith(isJoined: false, participantsCount: next);
+      }
+    } catch (e) {
+      Get.snackbar('Error', _cleanError(e), snackPosition: SnackPosition.BOTTOM);
+    }
+  }
+
+  Future<void> createEvent(String communityId, Map eventData) async {
+    try {
+      final map = await _repository.createCommunityEvent(
+        communityId,
+        Map<String, dynamic>.from(eventData),
+      );
+      final raw = map['event'] ?? map['data'] ?? map;
+      if (raw is Map) {
+        events.insert(0, CommunityEventModel.fromJson(_asJsonMap(raw)));
+      }
+      Get.snackbar(
+        'Success',
+        'Event created! 🏔️',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      Get.back();
+    } catch (e) {
+      Get.snackbar('Error', _cleanError(e), snackPosition: SnackPosition.BOTTOM);
+    }
+  }
+
+  Future<void> deleteEvent(String communityId, String eventId) async {
+    final confirmed = await Get.dialog<bool>(
+      AlertDialog(
+        title: const Text('Delete event?'),
+        content: const Text('This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Get.back(result: true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await _repository.deleteCommunityEvent(communityId, eventId);
+      events.removeWhere((e) => e.id == eventId);
+    } catch (e) {
+      Get.snackbar('Error', _cleanError(e), snackPosition: SnackPosition.BOTTOM);
+    }
+  }
+
+  // ── ANNOUNCEMENT METHODS ──────────────────────────────
+  Future<void> fetchAnnouncements(String communityId) async {
+    isAnnouncementsLoading.value = true;
+    try {
+      final map = await _repository.getAnnouncements(communityId);
+      announcements.assignAll(_parseAnnouncementList(map));
+    } catch (e) {
+      Get.snackbar('Error', _cleanError(e), snackPosition: SnackPosition.BOTTOM);
+    } finally {
+      isAnnouncementsLoading.value = false;
+    }
+  }
+
+  Future<void> createAnnouncement(String communityId, bool isPinned) async {
+    final title = announcementTitleController.text.trim();
+    final content = announcementContentController.text.trim();
+    if (title.isEmpty || content.isEmpty) return;
+
+    try {
+      final map = await _repository.createAnnouncement(
+        communityId,
+        title: title,
+        content: content,
+        isPinned: isPinned,
+      );
+      final raw = map['announcement'] ?? map['data'] ?? map;
+      if (raw is Map) {
+        announcements.insert(0, AnnouncementModel.fromJson(_asJsonMap(raw)));
+      }
+      announcementTitleController.clear();
+      announcementContentController.clear();
+      Get.back();
+    } catch (e) {
+      Get.snackbar('Error', _cleanError(e), snackPosition: SnackPosition.BOTTOM);
+    }
+  }
+
+  Future<void> togglePin(String announcementId) async {
+    try {
+      final map = await _repository.togglePinAnnouncement(announcementId);
+      final pinned = map['isPinned'] as bool?;
+      final i = announcements.indexWhere((a) => a.id == announcementId);
+      if (i >= 0 && pinned != null) {
+        final a = announcements[i];
+        announcements[i] = a.copyWith(isPinned: pinned);
+      }
+    } catch (e) {
+      Get.snackbar('Error', _cleanError(e), snackPosition: SnackPosition.BOTTOM);
+    }
+  }
+
+  Future<void> deleteAnnouncement(String announcementId) async {
+    final confirmed = await Get.dialog<bool>(
+      AlertDialog(
+        title: const Text('Delete announcement?'),
+        content: const Text('This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Get.back(result: true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await _repository.deleteAnnouncement(announcementId);
+      announcements.removeWhere((a) => a.id == announcementId);
+    } catch (e) {
+      Get.snackbar('Error', _cleanError(e), snackPosition: SnackPosition.BOTTOM);
+    }
+  }
+
+  // ── RULES METHODS ─────────────────────────────────────
+  Future<void> fetchRules(String communityId) async {
+    try {
+      final map = await _repository.getCommunityRules(communityId);
+      rules.assignAll(_parseRulesList(map));
+    } catch (e) {
+      Get.snackbar('Error', _cleanError(e), snackPosition: SnackPosition.BOTTOM);
+    }
+  }
+
+  Future<void> saveRules(String communityId, List<CommunityRuleModel> updatedRules) async {
+    try {
+      final payload = updatedRules.map((r) => r.toJson()).toList();
+      final map = await _repository.updateCommunityRules(communityId, payload);
+      rules.assignAll(_parseRulesList(map));
+      Get.snackbar(
+        'Success',
+        'Rules saved ✅',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      Get.back();
+    } catch (e) {
+      Get.snackbar('Error', _cleanError(e), snackPosition: SnackPosition.BOTTOM);
+    }
+  }
+
+  // ── MENTION METHODS ───────────────────────────────────
+  Future<void> searchMentions(String communityId, String query) async {
+    final q = query.trim();
+    if (q.length < 1) {
+      mentionSuggestions.clear();
+      return;
+    }
+
+    isMentionLoading.value = true;
+    try {
+      final map = await _repository.getMembersForMention(communityId, q);
+      final list = map['members'];
+      if (list is List) {
+        mentionSuggestions.assignAll(list.whereType<Map>().toList());
+      } else {
+        mentionSuggestions.clear();
+      }
+      showMentionDropdown.value = true;
+    } catch (e) {
+      Get.snackbar('Error', _cleanError(e), snackPosition: SnackPosition.BOTTOM);
+    } finally {
+      isMentionLoading.value = false;
+    }
+  }
+
+  void clearMentions() {
+    mentionSuggestions.clear();
+    showMentionDropdown.value = false;
   }
 
   Future<void> fetchMembers(String communityId) async {

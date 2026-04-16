@@ -70,6 +70,18 @@ class AppRoutes {
   /// Full member list for a community.
   static const String communityMembers = '/community-members';
 
+  /// Post comments screen (expects Get.arguments { postId, communityId }).
+  static const String postComments = '/post-comments';
+
+  /// Image gallery viewer (expects Get.arguments { images: List<String>, initialIndex: int }).
+  static const String imageGallery = '/image-gallery';
+
+  /// Create community event screen (expects Get.arguments communityId).
+  static const String createCommunityEvent = '/create-community-event';
+
+  /// Edit rules screen (expects Get.arguments communityId).
+  static const String editRules = '/edit-rules';
+
   /// [GetPage.binding] for [home]: [NavigationController], [TrackRepository], [TrackController].
   static Bindings bindingHome() => MainBinding();
 

@@ -1,3 +1,6 @@
+import 'attached_track_model.dart';
+import 'reaction_summary_model.dart';
+
 /// Dio / JSON decode often yields [Map<dynamic, dynamic>]; strict [Map<String, dynamic>]
 /// checks fail and break post parsing.
 Map<String, dynamic>? _mapFromJson(dynamic value) {
@@ -111,9 +114,13 @@ class CommunityPostModel {
     this.images = const [],
     this.likesCount = 0,
     this.isLiked = false,
+    this.commentsCount = 0,
+    this.isPinned = false,
+    this.reactionSummary = const ReactionSummaryModel(),
     required this.createdAt,
     required this.author,
     this.track,
+    this.attachedTrack,
   });
 
   final String id;
@@ -121,14 +128,31 @@ class CommunityPostModel {
   final List<String> images;
   final int likesCount;
   final bool isLiked;
+  final int commentsCount;
+  final bool isPinned;
+  final ReactionSummaryModel reactionSummary;
   final DateTime createdAt;
   final PostAuthorModel author;
   final PostTrackModel? track;
+  final AttachedTrackModel? attachedTrack;
 
   factory CommunityPostModel.fromJson(Map<String, dynamic> json) {
     final imagesRaw = json['images'];
     final authorMap = _mapFromJson(json['author']);
     final trackMap = _mapFromJson(json['track']);
+    final attachedTrackMap = _mapFromJson(json['attachedTrack']);
+
+    final reactionCountsMap = _mapFromJson(json['reactionCounts']) ?? const <String, dynamic>{};
+    final reactionSummary = ReactionSummaryModel.fromJson({
+      'fire': reactionCountsMap['fire'],
+      'heart': reactionCountsMap['heart'],
+      'clap': reactionCountsMap['clap'],
+      'wow': reactionCountsMap['wow'],
+      'haha': reactionCountsMap['haha'],
+      'strong': reactionCountsMap['strong'],
+      'userReaction': json['userReaction'],
+      'totalReactions': json['totalReactions'],
+    });
     return CommunityPostModel(
       id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
       content: json['content'] as String? ?? '',
@@ -137,6 +161,9 @@ class CommunityPostModel {
           : const [],
       likesCount: (json['likesCount'] as num?)?.toInt() ?? 0,
       isLiked: json['isLiked'] as bool? ?? false,
+      commentsCount: (json['commentsCount'] as num?)?.toInt() ?? 0,
+      isPinned: json['isPinned'] as bool? ?? false,
+      reactionSummary: reactionSummary,
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString()) ??
               DateTime.fromMillisecondsSinceEpoch(0)
@@ -147,6 +174,9 @@ class CommunityPostModel {
       track: trackMap != null && trackMap.isNotEmpty
           ? PostTrackModel.fromJson(trackMap)
           : null,
+      attachedTrack: attachedTrackMap != null && attachedTrackMap.isNotEmpty
+          ? AttachedTrackModel.fromJson(attachedTrackMap)
+          : null,
     );
   }
 
@@ -156,9 +186,21 @@ class CommunityPostModel {
         'images': images,
         'likesCount': likesCount,
         'isLiked': isLiked,
+        'commentsCount': commentsCount,
+        'isPinned': isPinned,
+        'reactionCounts': {
+          'fire': reactionSummary.fire,
+          'heart': reactionSummary.heart,
+          'clap': reactionSummary.clap,
+          'wow': reactionSummary.wow,
+          'haha': reactionSummary.haha,
+          'strong': reactionSummary.strong,
+        },
+        if (reactionSummary.userReaction != null) 'userReaction': reactionSummary.userReaction,
         'createdAt': createdAt.toIso8601String(),
         'author': author.toJson(),
         if (track != null) 'track': track!.toJson(),
+        if (attachedTrack != null) 'attachedTrack': attachedTrack!.toJson(),
       };
 
   CommunityPostModel copyWith({
@@ -167,9 +209,13 @@ class CommunityPostModel {
     List<String>? images,
     int? likesCount,
     bool? isLiked,
+    int? commentsCount,
+    bool? isPinned,
+    ReactionSummaryModel? reactionSummary,
     DateTime? createdAt,
     PostAuthorModel? author,
     PostTrackModel? track,
+    AttachedTrackModel? attachedTrack,
   }) {
     return CommunityPostModel(
       id: id ?? this.id,
@@ -177,9 +223,13 @@ class CommunityPostModel {
       images: images ?? this.images,
       likesCount: likesCount ?? this.likesCount,
       isLiked: isLiked ?? this.isLiked,
+      commentsCount: commentsCount ?? this.commentsCount,
+      isPinned: isPinned ?? this.isPinned,
+      reactionSummary: reactionSummary ?? this.reactionSummary,
       createdAt: createdAt ?? this.createdAt,
       author: author ?? this.author,
       track: track ?? this.track,
+      attachedTrack: attachedTrack ?? this.attachedTrack,
     );
   }
 }

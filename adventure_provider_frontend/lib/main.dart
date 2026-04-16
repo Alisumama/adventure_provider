@@ -13,7 +13,11 @@ import 'features/community/views/community_detail_screen.dart';
 import 'features/community/views/community_members_screen.dart';
 import 'features/community/views/community_screen.dart';
 import 'features/community/views/community_settings_screen.dart';
+import 'features/community/views/create_community_event_screen.dart';
 import 'features/community/views/create_community_screen.dart';
+import 'features/community/views/edit_rules_screen.dart';
+import 'features/community/views/image_gallery_screen.dart';
+import 'features/community/views/post_comments_screen.dart';
 import 'features/profile/views/change_password_screen.dart';
 import 'features/profile/views/profile_screen.dart';
 import 'features/shell/main_shell_screen.dart';
@@ -171,6 +175,25 @@ class MyApp extends StatelessWidget {
         GetPage(
           name: AppRoutes.communityMembers,
           page: () => const CommunityMembersScreen(),
+          binding: AppRoutes.bindingCommunity(),
+        ),
+        GetPage(
+          name: AppRoutes.postComments,
+          page: () => const PostCommentsScreen(),
+          binding: AppRoutes.bindingCommunity(),
+        ),
+        GetPage(
+          name: AppRoutes.imageGallery,
+          page: () => const ImageGalleryScreen(),
+        ),
+        GetPage(
+          name: AppRoutes.createCommunityEvent,
+          page: () => const CreateCommunityEventScreen(),
+          binding: AppRoutes.bindingCommunity(),
+        ),
+        GetPage(
+          name: AppRoutes.editRules,
+          page: () => const EditRulesScreen(),
           binding: AppRoutes.bindingCommunity(),
         ),
       ],

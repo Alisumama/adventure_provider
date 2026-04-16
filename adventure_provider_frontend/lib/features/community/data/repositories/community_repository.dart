@@ -284,4 +284,290 @@ class CommunityRepository {
       throw Exception(e.toString());
     }
   }
+
+  // ── COMMENTS ──────────────────────────────────────────
+  /// GET /community/posts/:postId/comments?page=
+  Future<Map<String, dynamic>> getComments(
+    String postId, {
+    int page = 1,
+  }) async {
+    try {
+      final response = await _dio.get<dynamic>(
+        '$_community/posts/$postId/comments',
+        queryParameters: {'page': page},
+      );
+      if (response.data == null) throw Exception('Invalid response');
+      return _requireMap(response.data);
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
+  /// POST /community/posts/:postId/comments
+  /// Body: { content, mentions }
+  Future<Map<String, dynamic>> addComment(
+    String postId, {
+    required String content,
+    List<Map>? mentions,
+  }) async {
+    try {
+      final response = await _dio.post<dynamic>(
+        '$_community/posts/$postId/comments',
+        data: {
+          'content': content,
+          if (mentions != null) 'mentions': mentions,
+        },
+      );
+      if (response.data == null) throw Exception('Invalid response');
+      return _requireMap(response.data);
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
+  /// DELETE /community/comments/:commentId
+  Future<void> deleteComment(String commentId) async {
+    try {
+      await _dio.delete<dynamic>('$_community/comments/$commentId');
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
+  /// POST /community/comments/:commentId/like
+  Future<Map<String, dynamic>> toggleCommentLike(String commentId) async {
+    try {
+      final response = await _dio.post<dynamic>(
+        '$_community/comments/$commentId/like',
+      );
+      if (response.data == null) throw Exception('Invalid response');
+      return _requireMap(response.data);
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
+  // ── REACTIONS ─────────────────────────────────────────
+  /// POST /community/posts/:postId/react
+  Future<Map<String, dynamic>> reactToPost(String postId, String emoji) async {
+    try {
+      final response = await _dio.post<dynamic>(
+        '$_community/posts/$postId/react',
+        data: {'emoji': emoji},
+      );
+      if (response.data == null) throw Exception('Invalid response');
+      return _requireMap(response.data);
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
+  /// GET /community/posts/:postId/reactions
+  Future<Map<String, dynamic>> getPostReactions(String postId) async {
+    try {
+      final response = await _dio.get<dynamic>(
+        '$_community/posts/$postId/reactions',
+      );
+      if (response.data == null) throw Exception('Invalid response');
+      return _requireMap(response.data);
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
+  // ── EVENTS ────────────────────────────────────────────
+  /// GET /community/:communityId/events?upcoming=
+  Future<Map<String, dynamic>> getCommunityEvents(
+    String communityId, {
+    bool upcoming = true,
+  }) async {
+    try {
+      final response = await _dio.get<dynamic>(
+        '$_community/$communityId/events',
+        queryParameters: {'upcoming': upcoming},
+      );
+      if (response.data == null) throw Exception('Invalid response');
+      return _requireMap(response.data);
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
+  /// POST /community/:communityId/events
+  Future<Map<String, dynamic>> createCommunityEvent(
+    String communityId,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final response = await _dio.post<dynamic>(
+        '$_community/$communityId/events',
+        data: data,
+      );
+      if (response.data == null) throw Exception('Invalid response');
+      return _requireMap(response.data);
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
+  /// POST /community/:communityId/events/:eventId/join
+  Future<void> joinCommunityEvent(String communityId, String eventId) async {
+    try {
+      await _dio.post<dynamic>(
+        '$_community/$communityId/events/$eventId/join',
+      );
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
+  /// POST /community/:communityId/events/:eventId/leave
+  Future<void> leaveCommunityEvent(String communityId, String eventId) async {
+    try {
+      await _dio.post<dynamic>(
+        '$_community/$communityId/events/$eventId/leave',
+      );
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
+  /// DELETE /community/:communityId/events/:eventId
+  Future<void> deleteCommunityEvent(String communityId, String eventId) async {
+    try {
+      await _dio.delete<dynamic>(
+        '$_community/$communityId/events/$eventId',
+      );
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
+  // ── ANNOUNCEMENTS ─────────────────────────────────────
+  /// GET /community/:communityId/announcements
+  Future<Map<String, dynamic>> getAnnouncements(String communityId) async {
+    try {
+      final response = await _dio.get<dynamic>(
+        '$_community/$communityId/announcements',
+      );
+      if (response.data == null) throw Exception('Invalid response');
+      return _requireMap(response.data);
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
+  /// POST /community/:communityId/announcements
+  Future<Map<String, dynamic>> createAnnouncement(
+    String communityId, {
+    required String title,
+    required String content,
+    bool isPinned = false,
+  }) async {
+    try {
+      final response = await _dio.post<dynamic>(
+        '$_community/$communityId/announcements',
+        data: {
+          'title': title,
+          'content': content,
+          'isPinned': isPinned,
+        },
+      );
+      if (response.data == null) throw Exception('Invalid response');
+      return _requireMap(response.data);
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
+  /// PATCH /community/announcements/:announcementId/pin
+  Future<Map<String, dynamic>> togglePinAnnouncement(String announcementId) async {
+    try {
+      final response = await _dio.patch<dynamic>(
+        '$_community/announcements/$announcementId/pin',
+      );
+      if (response.data == null) throw Exception('Invalid response');
+      return _requireMap(response.data);
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
+  /// DELETE /community/announcements/:announcementId
+  Future<void> deleteAnnouncement(String announcementId) async {
+    try {
+      await _dio.delete<dynamic>(
+        '$_community/announcements/$announcementId',
+      );
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
+  // ── RULES ─────────────────────────────────────────────
+  /// GET /community/:communityId/rules
+  Future<Map<String, dynamic>> getCommunityRules(String communityId) async {
+    try {
+      final response = await _dio.get<dynamic>(
+        '$_community/$communityId/rules',
+      );
+      if (response.data == null) throw Exception('Invalid response');
+      return _requireMap(response.data);
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
+  /// PUT /community/:communityId/rules
+  /// Body: { rules }
+  Future<Map<String, dynamic>> updateCommunityRules(
+    String communityId,
+    List<Map> rules,
+  ) async {
+    try {
+      final response = await _dio.put<dynamic>(
+        '$_community/$communityId/rules',
+        data: {'rules': rules},
+      );
+      if (response.data == null) throw Exception('Invalid response');
+      return _requireMap(response.data);
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
+  // ── SEARCH & MENTION ──────────────────────────────────
+  /// GET /community/:communityId/posts/search?q=
+  Future<Map<String, dynamic>> searchCommunityPosts(
+    String communityId,
+    String q,
+  ) async {
+    try {
+      final response = await _dio.get<dynamic>(
+        '$_community/$communityId/posts/search',
+        queryParameters: {'q': q},
+      );
+      if (response.data == null) throw Exception('Invalid response');
+      return _requireMap(response.data);
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
+  /// GET /community/:communityId/members/mention?q=
+  Future<Map<String, dynamic>> getMembersForMention(
+    String communityId,
+    String q,
+  ) async {
+    try {
+      final response = await _dio.get<dynamic>(
+        '$_community/$communityId/members/mention',
+        queryParameters: {'q': q},
+      );
+      if (response.data == null) throw Exception('Invalid response');
+      return _requireMap(response.data);
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
 }
