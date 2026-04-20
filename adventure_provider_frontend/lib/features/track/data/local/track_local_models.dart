@@ -95,3 +95,91 @@ class TrackSessionLocal extends HiveObject {
   @HiveField(10, defaultValue: '')
   String serverTrackId;
 }
+
+/// GPS sample while following a published track (pending sync to `/api/follow`).
+@HiveType(typeId: 2)
+class TrackFollowPointLocal extends HiveObject {
+  TrackFollowPointLocal({
+    required this.id,
+    required this.followSessionId,
+    required this.latitude,
+    required this.longitude,
+    required this.timestamp,
+    this.isOffTrack = false,
+    this.distanceFromTrack = 0,
+    this.isSynced = false,
+  });
+
+  @HiveField(0)
+  String id;
+
+  @HiveField(1)
+  String followSessionId;
+
+  @HiveField(2)
+  double latitude;
+
+  @HiveField(3)
+  double longitude;
+
+  @HiveField(4)
+  DateTime timestamp;
+
+  @HiveField(5, defaultValue: false)
+  bool isOffTrack;
+
+  @HiveField(6, defaultValue: 0)
+  double distanceFromTrack;
+
+  @HiveField(7, defaultValue: false)
+  bool isSynced;
+}
+
+/// Local session while following someone else's track.
+@HiveType(typeId: 3)
+class TrackFollowSessionLocal extends HiveObject {
+  TrackFollowSessionLocal({
+    required this.followSessionId,
+    required this.trackId,
+    this.followId = '',
+    required this.startedAt,
+    this.isCompleted = false,
+    this.isSynced = false,
+    this.totalDistance = 0,
+    this.steps = 0,
+    this.calories = 0,
+    this.duration = 0,
+  });
+
+  @HiveField(0)
+  String followSessionId;
+
+  @HiveField(1)
+  String trackId;
+
+  /// Backend `TrackFollow` id after `POST /api/follow/start` (empty until created).
+  @HiveField(2, defaultValue: '')
+  String followId;
+
+  @HiveField(3)
+  DateTime startedAt;
+
+  @HiveField(4, defaultValue: false)
+  bool isCompleted;
+
+  @HiveField(5, defaultValue: false)
+  bool isSynced;
+
+  @HiveField(6, defaultValue: 0)
+  double totalDistance;
+
+  @HiveField(7, defaultValue: 0)
+  int steps;
+
+  @HiveField(8, defaultValue: 0)
+  int calories;
+
+  /// Total duration in seconds.
+  @HiveField(9, defaultValue: 0)
+  int duration;
+}

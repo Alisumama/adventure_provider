@@ -12,13 +12,7 @@ import '../../features/track/data/repositories/track_repository.dart';
 /// [LocalTrackRepository.markPointsSynced] updates local state. Use [syncAllUnsyncedSessions]
 /// after connectivity returns to flush every session that still has unsynced rows.
 class TrackSyncService extends GetxService {
-  TrackSyncService({
-    required LocalTrackRepository localTrackRepository,
-    required TrackRepository trackRepository,
-    required Connectivity connectivity,
-  })  : _local = localTrackRepository,
-        _trackRepository = trackRepository,
-        _connectivity = connectivity;
+  TrackSyncService({required LocalTrackRepository localTrackRepository, required TrackRepository trackRepository, required Connectivity connectivity}) : _local = localTrackRepository, _trackRepository = trackRepository, _connectivity = connectivity;
 
   final LocalTrackRepository _local;
   final TrackRepository _trackRepository;
@@ -51,15 +45,11 @@ class TrackSyncService extends GetxService {
   void startSync(String sessionId) {
     _syncTimer?.cancel();
     _activeSessionId = sessionId;
-    unawaited(
-      _runLocked(() => _syncSessionPointsFromLocalDb(sessionId)),
-    );
+    unawaited(_runLocked(() => _syncSessionPointsFromLocalDb(sessionId)));
     _syncTimer = Timer.periodic(const Duration(seconds: 3), (_) {
       final sid = _activeSessionId;
       if (sid == null) return;
-      unawaited(
-        _runLocked(() => _syncSessionPointsFromLocalDb(sid)),
-      );
+      unawaited(_runLocked(() => _syncSessionPointsFromLocalDb(sid)));
     });
   }
 
@@ -86,9 +76,7 @@ class TrackSyncService extends GetxService {
         return;
       }
 
-      final chunk = unsynced.length > _maxPointsPerRequest
-          ? unsynced.sublist(0, _maxPointsPerRequest)
-          : unsynced;
+      final chunk = unsynced.length > _maxPointsPerRequest ? unsynced.sublist(0, _maxPointsPerRequest) : unsynced;
 
       try {
         await _trackRepository.syncTrackPoints(serverId, chunk);

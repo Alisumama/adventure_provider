@@ -2,7 +2,7 @@ import 'package:hive/hive.dart';
 
 import 'track_local_models.dart';
 
-/// Registers [TrackPointLocal] (typeId 0) and [TrackSessionLocal] (typeId 1) adapters.
+/// Registers track local Hive adapters (typeIds 0–3).
 ///
 /// Call once after [Hive.initFlutter] (or [Hive.init]) and before opening boxes that use these types.
 void registerTrackLocalHiveAdapters() {
@@ -11,5 +11,11 @@ void registerTrackLocalHiveAdapters() {
   }
   if (!Hive.isAdapterRegistered(1)) {
     Hive.registerAdapter(TrackSessionLocalAdapter());
+  }
+  if (!Hive.isAdapterRegistered(2)) {
+    Hive.registerAdapter(TrackFollowPointLocalAdapter());
+  }
+  if (!Hive.isAdapterRegistered(3)) {
+    Hive.registerAdapter(TrackFollowSessionLocalAdapter());
   }
 }

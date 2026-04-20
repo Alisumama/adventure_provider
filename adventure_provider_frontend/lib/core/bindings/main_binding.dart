@@ -8,6 +8,7 @@ import '../../features/track/data/repositories/track_repository.dart';
 import 'community_binding.dart';
 import 'profile_binding.dart';
 import 'track_binding.dart';
+import 'track_follow_binding.dart';
 
 /// Registers shell dependencies before [MainShellScreen] builds.
 ///
@@ -19,6 +20,7 @@ class MainBinding extends Bindings {
       Get.put<NavigationController>(NavigationController(), permanent: true);
     }
     TrackBinding().dependencies();
+    TrackFollowBinding().dependencies();
     if (!Get.isRegistered<Connectivity>()) {
       Get.put<Connectivity>(Connectivity(), permanent: true);
     }

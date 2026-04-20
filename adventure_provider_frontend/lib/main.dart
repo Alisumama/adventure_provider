@@ -23,6 +23,7 @@ import 'features/profile/views/change_password_screen.dart';
 import 'features/profile/views/profile_screen.dart';
 import 'features/shell/main_shell_screen.dart';
 import 'features/splash/splash_screen.dart';
+import 'features/track/views/follow_track_screen.dart';
 import 'features/track/views/live_map_screen.dart';
 import 'features/track/views/record_track_screen.dart';
 import 'features/track/views/track_detail_screen.dart';
@@ -35,8 +36,12 @@ Future<void> main() async {
     await Hive.initFlutter();
     Hive.registerAdapter(TrackPointLocalAdapter());
     Hive.registerAdapter(TrackSessionLocalAdapter());
+    Hive.registerAdapter(TrackFollowPointLocalAdapter());
+    Hive.registerAdapter(TrackFollowSessionLocalAdapter());
     await Hive.openBox('track_points');
     await Hive.openBox('track_sessions');
+    await Hive.openBox('follow_points');
+    await Hive.openBox('follow_sessions');
   } catch (e, stackTrace) {
     debugPrint('Hive initialization failed: $e');
     debugPrint('$stackTrace');
@@ -143,6 +148,11 @@ class MyApp extends StatelessWidget {
           name: AppRoutes.liveMapRecording,
           page: () => const LiveMapScreen(),
           binding: AppRoutes.bindingTrack(),
+        ),
+        GetPage(
+          name: AppRoutes.followTrack,
+          page: () => const FollowTrackScreen(),
+          binding: AppRoutes.bindingFollowTrack(),
         ),
         GetPage(
           name: AppRoutes.liveSession,

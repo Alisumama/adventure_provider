@@ -10,11 +10,7 @@ abstract final class _HiveBoxes {
 
 /// Persists [TrackPointLocal] and [TrackSessionLocal] in local Hive boxes.
 class LocalTrackRepository {
-  LocalTrackRepository({
-    Box<dynamic>? pointsBox,
-    Box<dynamic>? sessionsBox,
-  })  : _pointsBox = pointsBox ?? Hive.box<dynamic>(_HiveBoxes.trackPoints),
-        _sessionsBox = sessionsBox ?? Hive.box<dynamic>(_HiveBoxes.trackSessions);
+  LocalTrackRepository({Box<dynamic>? pointsBox, Box<dynamic>? sessionsBox}) : _pointsBox = pointsBox ?? Hive.box<dynamic>(_HiveBoxes.trackPoints), _sessionsBox = sessionsBox ?? Hive.box<dynamic>(_HiveBoxes.trackSessions);
 
   final Box<dynamic> _pointsBox;
   final Box<dynamic> _sessionsBox;
@@ -41,9 +37,7 @@ class LocalTrackRepository {
     final out = <TrackPointLocal>[];
     for (final key in _pointsBox.keys) {
       final v = _pointsBox.get(key);
-      if (v is TrackPointLocal &&
-          v.trackSessionId == sessionId &&
-          !v.isSynced) {
+      if (v is TrackPointLocal && v.trackSessionId == sessionId && !v.isSynced) {
         out.add(v);
       }
     }
@@ -122,9 +116,7 @@ class LocalTrackRepository {
     final keysToRemove = <dynamic>[];
     for (final key in _pointsBox.keys) {
       final v = _pointsBox.get(key);
-      if (v is TrackPointLocal &&
-          v.trackSessionId == sessionId &&
-          v.isSynced) {
+      if (v is TrackPointLocal && v.trackSessionId == sessionId && v.isSynced) {
         keysToRemove.add(key);
       }
     }

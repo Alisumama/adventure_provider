@@ -21,13 +21,7 @@ import '../data/models/track_model.dart';
 import '../data/repositories/track_repository.dart';
 
 class TrackController extends GetxController {
-  TrackController(
-    this._repository,
-    this._imageUpload,
-    this._local,
-    this._trackSync,
-    this._connectivity,
-  );
+  TrackController(this._repository, this._imageUpload, this._local, this._trackSync, this._connectivity);
 
   final TrackRepository _repository;
   final ImageUploadService _imageUpload;
@@ -83,8 +77,10 @@ class TrackController extends GetxController {
   final RxList<LiveTrackFlag> liveFlags = <LiveTrackFlag>[].obs;
 
   sio.Socket? _socket;
+
   /// Legacy recording ([startRecording]) GPS stream.
   StreamSubscription<Position>? _positionSub;
+
   /// Live session GPS ([startGpsTracking] / [pauseGps] / [resumeGps]).
   StreamSubscription<Position>? _gpsPositionSub;
   Timer? _durationTimer;
@@ -97,8 +93,7 @@ class TrackController extends GetxController {
   static const double _avgStepMeters = 0.762;
   static const double _kcalPerMeter = 0.055;
 
-  String _cleanError(Object e) =>
-      e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+  String _cleanError(Object e) => e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
 
   String _friendlyMessage(Object e) {
     final s = _cleanError(e);
@@ -134,10 +129,8 @@ class TrackController extends GetxController {
   }
 
   void _updateStepsAndCalories() {
-    recordingSteps.value =
-        (recordingDistance.value / _avgStepMeters).floor().clamp(0, 1 << 30);
-    recordingCalories.value =
-        (recordingDistance.value * _kcalPerMeter).round().clamp(0, 1 << 30);
+    recordingSteps.value = (recordingDistance.value / _avgStepMeters).floor().clamp(0, 1 << 30);
+    recordingCalories.value = (recordingDistance.value * _kcalPerMeter).round().clamp(0, 1 << 30);
   }
 
   @override
@@ -158,18 +151,10 @@ class TrackController extends GetxController {
     final save = await Get.dialog<bool>(
       AlertDialog(
         title: const Text('Unfinished session'),
-        content: const Text(
-          'You have an unfinished track session. Would you like to save it or discard it?',
-        ),
+        content: const Text('You have an unfinished track session. Would you like to save it or discard it?'),
         actions: [
-          TextButton(
-            onPressed: () => Get.back<bool>(result: false),
-            child: const Text('Discard'),
-          ),
-          FilledButton(
-            onPressed: () => Get.back<bool>(result: true),
-            child: const Text('Save'),
-          ),
+          TextButton(onPressed: () => Get.back<bool>(result: false), child: const Text('Discard')),
+          FilledButton(onPressed: () => Get.back<bool>(result: true), child: const Text('Save')),
         ],
       ),
       barrierDismissible: false,
@@ -186,11 +171,7 @@ class TrackController extends GetxController {
       await _restoreInterruptedSessionForSave(primary);
       final points = _local.getSessionPoints(primary.sessionId);
       if (points.isEmpty) {
-        Get.snackbar(
-          'Nothing to save',
-          'This session has no GPS points.',
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        Get.snackbar('Nothing to save', 'This session has no GPS points.', snackPosition: SnackPosition.BOTTOM);
         _local.deleteSession(primary.sessionId);
         _discardLegacyRecordingAfterSave();
         return;
@@ -217,21 +198,12 @@ class TrackController extends GetxController {
     for (var i = 1; i < latLngs.length; i++) {
       final a = latLngs[i - 1];
       final b = latLngs[i];
-      dist += Geolocator.distanceBetween(
-        a.latitude,
-        a.longitude,
-        b.latitude,
-        b.longitude,
-      );
+      dist += Geolocator.distanceBetween(a.latitude, a.longitude, b.latitude, b.longitude);
     }
     recordingDistance.value = dist;
     _updateStepsAndCalories();
 
-    final durationSec = session.duration > 0
-        ? session.duration
-        : (points.isNotEmpty
-            ? points.last.timestamp.difference(session.startedAt).inSeconds.clamp(0, 1 << 30)
-            : 0);
+    final durationSec = session.duration > 0 ? session.duration : (points.isNotEmpty ? points.last.timestamp.difference(session.startedAt).inSeconds.clamp(0, 1 << 30) : 0);
     recordingDuration.value = durationSec;
 
     currentLocation.value = latLngs.isNotEmpty ? latLngs.last : null;
@@ -303,10 +275,7 @@ class TrackController extends GetxController {
         'steps': 0,
         'calories': 0,
         'isPublic': true,
-        'geoPath': <String, dynamic>{
-          'type': 'LineString',
-          'coordinates': <dynamic>[],
-        },
+        'geoPath': <String, dynamic>{'type': 'LineString', 'coordinates': <dynamic>[]},
       });
       final id = created.id;
       if (id == null || id.isEmpty) return;
@@ -324,24 +293,15 @@ class TrackController extends GetxController {
   Future<bool> _ensureLocationPermission() async {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      Get.snackbar(
-        'Location off',
-        'Turn on location services to record a track.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Location off', 'Turn on location services to record a track.', snackPosition: SnackPosition.BOTTOM);
       return false;
     }
     var permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
-      Get.snackbar(
-        'Permission denied',
-        'Location permission is required to record.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+      Get.snackbar('Permission denied', 'Location permission is required to record.', snackPosition: SnackPosition.BOTTOM);
       return false;
     }
     return true;
@@ -352,19 +312,9 @@ class TrackController extends GetxController {
       return;
     }
     final url = ApiConfig.serverOrigin.replaceAll(RegExp(r'/+$'), '');
-    _socket = sio.io(
-      url,
-      sio.OptionBuilder()
-          .setTransports(['websocket'])
-          .enableAutoConnect()
-          .build(),
-    );
+    _socket = sio.io(url, sio.OptionBuilder().setTransports(['websocket']).enableAutoConnect().build());
     _socket!.on('track_error', (dynamic data) {
-      Get.snackbar(
-        'Track',
-        _friendlySocketMessage(data),
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Track', _friendlySocketMessage(data), snackPosition: SnackPosition.BOTTOM);
     });
   }
 
@@ -374,10 +324,7 @@ class TrackController extends GetxController {
     if (s == null) return;
 
     void emit() {
-      s.emit('start_track', <String, dynamic>{
-        'userId': userId,
-        'trackId': trackId,
-      });
+      s.emit('start_track', <String, dynamic>{'userId': userId, 'trackId': trackId});
     }
 
     if (s.connected) {
@@ -403,11 +350,7 @@ class TrackController extends GetxController {
       final list = await _repository.getMyTracks();
       myTracks.assignAll(list);
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        _friendlyMessage(e),
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Error', _friendlyMessage(e), snackPosition: SnackPosition.BOTTOM);
     } finally {
       isLoading.value = false;
     }
@@ -419,11 +362,7 @@ class TrackController extends GetxController {
       final list = await _repository.getNearbyTracks(lat, lng);
       nearbyTracks.assignAll(list);
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        _friendlyMessage(e),
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Error', _friendlyMessage(e), snackPosition: SnackPosition.BOTTOM);
     } finally {
       isLoading.value = false;
     }
@@ -442,11 +381,7 @@ class TrackController extends GetxController {
       selectedTrack.value = null;
       trackPhotos.clear();
       trackFlags.clear();
-      Get.snackbar(
-        'Error',
-        _friendlyMessage(e),
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Error', _friendlyMessage(e), snackPosition: SnackPosition.BOTTOM);
     } finally {
       isLoading.value = false;
     }
@@ -464,39 +399,20 @@ class TrackController extends GetxController {
         trackFlags.clear();
       }
       Get.back<void>();
-      Get.snackbar(
-        'Deleted',
-        'Track removed.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Deleted', 'Track removed.', snackPosition: SnackPosition.BOTTOM);
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        _friendlyMessage(e),
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Error', _friendlyMessage(e), snackPosition: SnackPosition.BOTTOM);
     } finally {
       isLoading.value = false;
     }
   }
 
   /// Creates draft track, joins Socket.io room, starts timer + GPS (or tap-only in testing mode), opens live map.
-  Future<void> startTrack({
-    required String trackName,
-    required String description,
-    required String trackType,
-    required String difficulty,
-    required bool isPublic,
-    required bool isTestingMode,
-  }) async {
+  Future<void> startTrack({required String trackName, required String description, required String trackType, required String difficulty, required bool isPublic, required bool isTestingMode}) async {
     final auth = Get.find<AuthController>();
     final uid = auth.user.value?.id;
     if (uid == null || uid.isEmpty) {
-      Get.snackbar(
-        'Sign in required',
-        'Please sign in to record a track.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Sign in required', 'Please sign in to record a track.', snackPosition: SnackPosition.BOTTOM);
       return;
     }
 
@@ -505,22 +421,11 @@ class TrackController extends GetxController {
 
     isLoading.value = true;
     try {
-      final created = await _repository.createDraftTrack(<String, dynamic>{
-        'title': trackName,
-        'description': description,
-        'type': trackType,
-        'difficulty': difficulty,
-        'isPublic': isPublic,
-        'isTesting': isTestingMode,
-      });
+      final created = await _repository.createDraftTrack(<String, dynamic>{'title': trackName, 'description': description, 'type': trackType, 'difficulty': difficulty, 'isPublic': isPublic, 'isTesting': isTestingMode});
 
       final id = created.id;
       if (id == null || id.isEmpty) {
-        Get.snackbar(
-          'Error',
-          'Could not start track. Please try again.',
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        Get.snackbar('Error', 'Could not start track. Please try again.', snackPosition: SnackPosition.BOTTOM);
         return;
       }
 
@@ -537,11 +442,7 @@ class TrackController extends GetxController {
       currentLocation.value = null;
 
       // Create local Hive session for offline-first sync.
-      final session = TrackSessionLocal(
-        sessionId: id,
-        startedAt: DateTime.now(),
-        serverTrackId: id,
-      );
+      final session = TrackSessionLocal(sessionId: id, startedAt: DateTime.now(), serverTrackId: id);
       _local.saveSession(session);
       activeSessionId.value = id;
       _livePointSeq = 0;
@@ -569,11 +470,7 @@ class TrackController extends GetxController {
 
       Get.toNamed(AppRoutes.liveMapRecording);
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        _friendlyMessage(e),
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Error', _friendlyMessage(e), snackPosition: SnackPosition.BOTTOM);
     } finally {
       isLoading.value = false;
     }
@@ -583,11 +480,7 @@ class TrackController extends GetxController {
   Future<bool> startGpsTracking() async {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      Get.snackbar(
-        'Location off',
-        'Turn on location services to record a track.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Location off', 'Turn on location services to record a track.', snackPosition: SnackPosition.BOTTOM);
       return false;
     }
 
@@ -596,42 +489,25 @@ class TrackController extends GetxController {
       ph = await Permission.location.request();
     }
     if (ph.isPermanentlyDenied) {
-      Get.snackbar(
-        'Location needed',
-        'Enable location permission in Settings to record your route.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Location needed', 'Enable location permission in Settings to record your route.', snackPosition: SnackPosition.BOTTOM);
       return false;
     }
     if (!ph.isGranted) {
-      Get.snackbar(
-        'Permission denied',
-        'Location permission is required to record.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Permission denied', 'Location permission is required to record.', snackPosition: SnackPosition.BOTTOM);
       return false;
     }
 
     await _gpsPositionSub?.cancel();
     _gpsPositionSub = null;
 
-    const settings = LocationSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: 5,
-    );
+    const settings = LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 5);
 
     _gpsPositionSub = Geolocator.getPositionStream(locationSettings: settings).listen(
       (position) {
-        onLocationUpdate(
-          LatLng(position.latitude, position.longitude),
-        );
+        onLocationUpdate(LatLng(position.latitude, position.longitude));
       },
       onError: (_) {
-        Get.snackbar(
-          'GPS error',
-          'Location update failed. Please try again.',
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        Get.snackbar('GPS error', 'Location update failed. Please try again.', snackPosition: SnackPosition.BOTTOM);
       },
     );
     return true;
@@ -645,9 +521,7 @@ class TrackController extends GetxController {
 
   /// Restarts the live GPS stream after [pauseGps] (non-testing live session only).
   Future<void> resumeGps() async {
-    if (!isRecording.value ||
-        liveTrackId.value.isEmpty ||
-        liveTestingMode.value) {
+    if (!isRecording.value || liveTrackId.value.isEmpty || liveTestingMode.value) {
       return;
     }
     await startGpsTracking();
@@ -657,12 +531,7 @@ class TrackController extends GetxController {
   void onLocationUpdate(LatLng point) {
     if (pathPoints.isNotEmpty) {
       final last = pathPoints.last;
-      final delta = Geolocator.distanceBetween(
-        last.latitude,
-        last.longitude,
-        point.latitude,
-        point.longitude,
-      );
+      final delta = Geolocator.distanceBetween(last.latitude, last.longitude, point.latitude, point.longitude);
       recordingDistance.value += delta;
       _updateStepsAndCalories();
     }
@@ -677,15 +546,7 @@ class TrackController extends GetxController {
     // Persist to Hive — sync service pushes unsynced points via HTTP every 3 s.
     _livePointSeq++;
     final pid = '${tid}_p$_livePointSeq';
-    final localPoint = TrackPointLocal(
-      id: pid,
-      trackSessionId: tid,
-      latitude: point.latitude,
-      longitude: point.longitude,
-      altitude: 0,
-      speed: 0,
-      timestamp: DateTime.now(),
-    );
+    final localPoint = TrackPointLocal(id: pid, trackSessionId: tid, latitude: point.latitude, longitude: point.longitude, altitude: 0, speed: 0, timestamp: DateTime.now());
     _local.saveTrackPoint(localPoint);
     pendingPointsCount.value = _local.getUnsyncedPoints(tid).length;
   }
@@ -703,11 +564,7 @@ class TrackController extends GetxController {
   Future<bool> addFlag(AddFlagData flagData) async {
     final tid = liveTrackId.value;
     if (tid.isEmpty) {
-      Get.snackbar(
-        'Track',
-        'No active track session.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Track', 'No active track session.', snackPosition: SnackPosition.BOTTOM);
       return false;
     }
 
@@ -733,10 +590,7 @@ class TrackController extends GetxController {
             'type': flagData.type,
             'description': flagData.description,
             'images': imageUrls,
-            'location': <String, double>{
-              'lng': lng,
-              'lat': lat,
-            },
+            'location': <String, double>{'lng': lng, 'lat': lat},
           },
         });
       }
@@ -747,28 +601,12 @@ class TrackController extends GetxController {
         s.once('connect', (_) => emit());
       }
 
-      liveFlags.add(
-        LiveTrackFlag(
-          type: flagData.type,
-          description: flagData.description.isEmpty ? null : flagData.description,
-          images: imageUrls,
-          lat: lat,
-          lng: lng,
-        ),
-      );
+      liveFlags.add(LiveTrackFlag(type: flagData.type, description: flagData.description.isEmpty ? null : flagData.description, images: imageUrls, lat: lat, lng: lng));
 
-      Get.snackbar(
-        'Flag added',
-        'Your flag was saved to this track.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Flag added', 'Your flag was saved to this track.', snackPosition: SnackPosition.BOTTOM);
       return true;
     } catch (e) {
-      Get.snackbar(
-        'Could not add flag',
-        _friendlyMessage(e),
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Could not add flag', _friendlyMessage(e), snackPosition: SnackPosition.BOTTOM);
       return false;
     }
   }
@@ -805,14 +643,9 @@ class TrackController extends GetxController {
     final tid = liveTrackId.value;
     if (tid.isEmpty) return;
 
-    final end = currentLocation.value ??
-        (pathPoints.isNotEmpty ? pathPoints.last : null);
+    final end = currentLocation.value ?? (pathPoints.isNotEmpty ? pathPoints.last : null);
     if (end == null) {
-      Get.snackbar(
-        'No location',
-        'Add at least one point before ending the track.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('No location', 'Add at least one point before ending the track.', snackPosition: SnackPosition.BOTTOM);
       return;
     }
 
@@ -836,21 +669,14 @@ class TrackController extends GetxController {
     try {
       _socket?.emit('end_track', <String, dynamic>{
         'trackId': tid,
-        'endPoint': <String, double>{
-          'lng': end.longitude,
-          'lat': end.latitude,
-        },
+        'endPoint': <String, double>{'lng': end.longitude, 'lat': end.latitude},
         'distance': recordingDistance.value.round(),
         'duration': recordingDuration.value,
         'steps': recordingSteps.value,
         'calories': recordingCalories.value,
       });
     } catch (_) {
-      Get.snackbar(
-        'Error',
-        'Could not finish track. Please try again.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Error', 'Could not finish track. Please try again.', snackPosition: SnackPosition.BOTTOM);
     }
 
     await _resetLiveSession(clearDraftId: true);
@@ -868,11 +694,7 @@ class TrackController extends GetxController {
     final auth = Get.find<AuthController>();
     final uid = auth.user.value?.id;
     if (uid == null || uid.isEmpty) {
-      Get.snackbar(
-        'Sign in required',
-        'Please sign in to record a track.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Sign in required', 'Please sign in to record a track.', snackPosition: SnackPosition.BOTTOM);
       return;
     }
 
@@ -892,10 +714,7 @@ class TrackController extends GetxController {
     recordingCalories.value = 0;
     currentLocation.value = null;
 
-    final session = TrackSessionLocal(
-      sessionId: sessionId,
-      startedAt: DateTime.now(),
-    );
+    final session = TrackSessionLocal(sessionId: sessionId, startedAt: DateTime.now());
     _local.saveSession(session);
 
     await _tryCreateServerTrackForSession(sessionId);
@@ -910,10 +729,7 @@ class TrackController extends GetxController {
       }
     });
 
-    const settings = LocationSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: 5,
-    );
+    const settings = LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 5);
 
     _positionSub?.cancel();
     _positionSub = Geolocator.getPositionStream(locationSettings: settings).listen(
@@ -921,12 +737,7 @@ class TrackController extends GetxController {
         final point = LatLng(position.latitude, position.longitude);
         if (recordingPath.isNotEmpty) {
           final last = recordingPath.last;
-          final delta = Geolocator.distanceBetween(
-            last.latitude,
-            last.longitude,
-            point.latitude,
-            point.longitude,
-          );
+          final delta = Geolocator.distanceBetween(last.latitude, last.longitude, point.latitude, point.longitude);
           recordingDistance.value += delta;
           _updateStepsAndCalories();
         }
@@ -936,24 +747,12 @@ class TrackController extends GetxController {
 
         _legacyPointSeq++;
         final pid = '${sessionId}_p$_legacyPointSeq';
-        final localPoint = TrackPointLocal(
-          id: pid,
-          trackSessionId: sessionId,
-          latitude: position.latitude,
-          longitude: position.longitude,
-          altitude: position.altitude.isFinite ? position.altitude : 0,
-          speed: position.speed.isFinite ? position.speed : 0,
-          timestamp: position.timestamp,
-        );
+        final localPoint = TrackPointLocal(id: pid, trackSessionId: sessionId, latitude: position.latitude, longitude: position.longitude, altitude: position.altitude.isFinite ? position.altitude : 0, speed: position.speed.isFinite ? position.speed : 0, timestamp: position.timestamp);
         _local.saveTrackPoint(localPoint);
         pendingPointsCount.value = _local.getUnsyncedPoints(sessionId).length;
       },
       onError: (Object e) {
-        Get.snackbar(
-          'GPS error',
-          'Location update failed. Please try again.',
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        Get.snackbar('GPS error', 'Location update failed. Please try again.', snackPosition: SnackPosition.BOTTOM);
       },
     );
   }
@@ -990,11 +789,7 @@ class TrackController extends GetxController {
     await _stopRecordingCore();
 
     if (recordingPath.isEmpty) {
-      Get.snackbar(
-        'No path',
-        'No GPS points were recorded.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('No path', 'No GPS points were recorded.', snackPosition: SnackPosition.BOTTOM);
       if (sid.isNotEmpty) {
         _local.deleteSession(sid);
         activeSessionId.value = '';
@@ -1038,56 +833,32 @@ class TrackController extends GetxController {
         builder: (context, setSheetState) {
           return SafeArea(
             child: Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 16,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-              ),
+              padding: EdgeInsets.only(left: 20, right: 20, top: 16, bottom: MediaQuery.of(context).viewInsets.bottom + 16),
               child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      'Save track',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
+                    Text('Save track', style: Theme.of(context).textTheme.titleLarge),
                     const SizedBox(height: 16),
                     TextField(
                       controller: titleCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Title',
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: const InputDecoration(labelText: 'Title', border: OutlineInputBorder()),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: descCtrl,
                       maxLines: 2,
-                      decoration: const InputDecoration(
-                        labelText: 'Description',
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder()),
                     ),
                     const SizedBox(height: 12),
                     InputDecorator(
-                      decoration: const InputDecoration(
-                        labelText: 'Type',
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: const InputDecoration(labelText: 'Type', border: OutlineInputBorder()),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                           value: trackType,
                           isExpanded: true,
-                          items: types
-                              .map(
-                                (t) => DropdownMenuItem(
-                                  value: t,
-                                  child: Text(t),
-                                ),
-                              )
-                              .toList(),
+                          items: types.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
                           onChanged: (v) {
                             if (v != null) {
                               setSheetState(() => trackType = v);
@@ -1098,22 +869,12 @@ class TrackController extends GetxController {
                     ),
                     const SizedBox(height: 12),
                     InputDecorator(
-                      decoration: const InputDecoration(
-                        labelText: 'Difficulty',
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: const InputDecoration(labelText: 'Difficulty', border: OutlineInputBorder()),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                           value: difficulty,
                           isExpanded: true,
-                          items: diffs
-                              .map(
-                                (d) => DropdownMenuItem(
-                                  value: d,
-                                  child: Text(d),
-                                ),
-                              )
-                              .toList(),
+                          items: diffs.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
                           onChanged: (v) {
                             if (v != null) {
                               setSheetState(() => difficulty = v);
@@ -1125,12 +886,7 @@ class TrackController extends GetxController {
                     const SizedBox(height: 20),
                     FilledButton(
                       onPressed: () async {
-                        await saveRecordedTrack(
-                          titleCtrl.text.trim(),
-                          descCtrl.text.trim(),
-                          trackType,
-                          difficulty,
-                        );
+                        await saveRecordedTrack(titleCtrl.text.trim(), descCtrl.text.trim(), trackType, difficulty);
                       },
                       child: const Text('Save'),
                     ),
@@ -1148,38 +904,21 @@ class TrackController extends GetxController {
     });
   }
 
-  Future<void> saveRecordedTrack(
-    String title,
-    String description,
-    String type,
-    String difficulty,
-  ) async {
+  Future<void> saveRecordedTrack(String title, String description, String type, String difficulty) async {
     if (recordingPath.isEmpty) {
-      Get.snackbar(
-        'Nothing to save',
-        'Record a route before saving.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Nothing to save', 'Record a route before saving.', snackPosition: SnackPosition.BOTTOM);
       return;
     }
 
     final trimmedTitle = title.trim();
     if (trimmedTitle.isEmpty) {
-      Get.snackbar(
-        'Title required',
-        'Enter a title for your track.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Title required', 'Enter a title for your track.', snackPosition: SnackPosition.BOTTOM);
       return;
     }
 
     final sid = activeSessionId.value;
     if (sid.isEmpty) {
-      Get.snackbar(
-        'No session',
-        'Nothing to save.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('No session', 'Nothing to save.', snackPosition: SnackPosition.BOTTOM);
       return;
     }
 
@@ -1187,11 +926,7 @@ class TrackController extends GetxController {
     var session = _local.getSession(sid);
     var trackId = session?.serverTrackId ?? '';
     if (trackId.isEmpty) {
-      Get.snackbar(
-        'Offline',
-        'Could not create the track on the server yet. Go online and tap Save again.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Offline', 'Could not create the track on the server yet. Go online and tap Save again.', snackPosition: SnackPosition.BOTTOM);
       return;
     }
 
@@ -1218,32 +953,18 @@ class TrackController extends GetxController {
       if (Get.isBottomSheetOpen == true) {
         Get.back<void>();
       }
-      Get.snackbar(
-        'Saved',
-        'Track saved successfully.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Saved', 'Track saved successfully.', snackPosition: SnackPosition.BOTTOM);
     } catch (e) {
       Get.dialog<void>(
         AlertDialog(
           title: const Text('Could not save'),
           content: Text(_friendlyMessage(e)),
           actions: [
-            TextButton(
-              onPressed: Get.back<void>,
-              child: const Text('Cancel'),
-            ),
+            TextButton(onPressed: Get.back<void>, child: const Text('Cancel')),
             TextButton(
               onPressed: () {
                 Get.back<void>();
-                unawaited(
-                  saveRecordedTrack(
-                    trimmedTitle,
-                    description,
-                    type,
-                    difficulty,
-                  ),
-                );
+                unawaited(saveRecordedTrack(trimmedTitle, description, type, difficulty));
               },
               child: const Text('Retry'),
             ),
@@ -1260,11 +981,7 @@ class TrackController extends GetxController {
       final updated = await _repository.likeTrack(id);
       _applyTrackUpdate(updated);
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        _friendlyMessage(e),
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Error', _friendlyMessage(e), snackPosition: SnackPosition.BOTTOM);
     }
   }
 
@@ -1273,11 +990,7 @@ class TrackController extends GetxController {
       final updated = await _repository.saveTrack(id);
       _applyTrackUpdate(updated);
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        _friendlyMessage(e),
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Error', _friendlyMessage(e), snackPosition: SnackPosition.BOTTOM);
     }
   }
 
@@ -1285,26 +998,14 @@ class TrackController extends GetxController {
     try {
       final id = selectedTrack.value?.id;
       if (id == null || id.isEmpty) {
-        Get.snackbar(
-          'Error',
-          'No track selected.',
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        Get.snackbar('Error', 'No track selected.', snackPosition: SnackPosition.BOTTOM);
         return;
       }
       final track = await _repository.uploadTrackPhoto(id, imageFile);
       _applyTrackUpdate(track);
-      Get.snackbar(
-        'Photo added',
-        'Your photo was added to the track.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Photo added', 'Your photo was added to the track.', snackPosition: SnackPosition.BOTTOM);
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        _friendlyMessage(e),
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Error', _friendlyMessage(e), snackPosition: SnackPosition.BOTTOM);
     }
   }
 
@@ -1312,26 +1013,14 @@ class TrackController extends GetxController {
     try {
       final id = selectedTrack.value?.id;
       if (id == null || id.isEmpty) {
-        Get.snackbar(
-          'Error',
-          'No track selected.',
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        Get.snackbar('Error', 'No track selected.', snackPosition: SnackPosition.BOTTOM);
         return;
       }
       final track = await _repository.deleteTrackPhoto(id, photoIndex);
       _applyTrackUpdate(track);
-      Get.snackbar(
-        'Photo removed',
-        'The photo was removed from the track.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Photo removed', 'The photo was removed from the track.', snackPosition: SnackPosition.BOTTOM);
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        _friendlyMessage(e),
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Error', _friendlyMessage(e), snackPosition: SnackPosition.BOTTOM);
     }
   }
 
@@ -1339,10 +1028,7 @@ class TrackController extends GetxController {
     return <String, dynamic>{
       'type': data.type,
       'description': data.description,
-      'location': <String, double>{
-        'lng': data.coordinate.longitude,
-        'lat': data.coordinate.latitude,
-      },
+      'location': <String, double>{'lng': data.coordinate.longitude, 'lat': data.coordinate.latitude},
       'images': imageUrls,
     };
   }
@@ -1351,33 +1037,18 @@ class TrackController extends GetxController {
     try {
       final id = selectedTrack.value?.id;
       if (id == null || id.isEmpty) {
-        Get.snackbar(
-          'Error',
-          'No track selected.',
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        Get.snackbar('Error', 'No track selected.', snackPosition: SnackPosition.BOTTOM);
         return;
       }
       final urls = <String>[...data.existingImageUrls];
       for (final f in data.images) {
         urls.add(await _repository.uploadTrackFlagImage(id, f));
       }
-      final track = await _repository.postTrackFlag(
-        id,
-        _flagApiPayload(data, urls),
-      );
+      final track = await _repository.postTrackFlag(id, _flagApiPayload(data, urls));
       _applyTrackUpdate(track);
-      Get.snackbar(
-        'Flag added',
-        'Your flag was saved to this track.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Flag added', 'Your flag was saved to this track.', snackPosition: SnackPosition.BOTTOM);
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        _friendlyMessage(e),
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Error', _friendlyMessage(e), snackPosition: SnackPosition.BOTTOM);
     }
   }
 
@@ -1385,34 +1056,18 @@ class TrackController extends GetxController {
     try {
       final id = selectedTrack.value?.id;
       if (id == null || id.isEmpty || flagId.isEmpty) {
-        Get.snackbar(
-          'Error',
-          'No track selected.',
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        Get.snackbar('Error', 'No track selected.', snackPosition: SnackPosition.BOTTOM);
         return;
       }
       final urls = <String>[...data.existingImageUrls];
       for (final f in data.images) {
         urls.add(await _repository.uploadTrackFlagImage(id, f));
       }
-      final track = await _repository.putTrackFlag(
-        id,
-        flagId,
-        _flagApiPayload(data, urls),
-      );
+      final track = await _repository.putTrackFlag(id, flagId, _flagApiPayload(data, urls));
       _applyTrackUpdate(track);
-      Get.snackbar(
-        'Flag updated',
-        'Your changes were saved.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Flag updated', 'Your changes were saved.', snackPosition: SnackPosition.BOTTOM);
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        _friendlyMessage(e),
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Error', _friendlyMessage(e), snackPosition: SnackPosition.BOTTOM);
     }
   }
 
@@ -1420,26 +1075,14 @@ class TrackController extends GetxController {
     try {
       final id = selectedTrack.value?.id;
       if (id == null || id.isEmpty || flagId.isEmpty) {
-        Get.snackbar(
-          'Error',
-          'No track selected.',
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        Get.snackbar('Error', 'No track selected.', snackPosition: SnackPosition.BOTTOM);
         return;
       }
       final track = await _repository.deleteTrackFlag(id, flagId);
       _applyTrackUpdate(track);
-      Get.snackbar(
-        'Flag removed',
-        'The flag was removed from this track.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Flag removed', 'The flag was removed from this track.', snackPosition: SnackPosition.BOTTOM);
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        _friendlyMessage(e),
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Error', _friendlyMessage(e), snackPosition: SnackPosition.BOTTOM);
     }
   }
 

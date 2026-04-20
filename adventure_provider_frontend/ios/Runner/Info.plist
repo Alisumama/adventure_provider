@@ -49,6 +49,8 @@
 		<true/>
 		<key>UIViewControllerBasedStatusBarAppearance</key>
 		<false/>
+		<key>GMSApiKey</key>
+		<string>REPLACE_WITH_GOOGLE_MAPS_IOS_KEY</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>Your location is used to record adventure routes while you track.</string>
 		<key>NSCameraUsageDescription</key>

@@ -1,9 +1,11 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:get/get.dart';
 
 import '../bindings/community_binding.dart';
 import '../bindings/main_binding.dart';
 import '../bindings/profile_binding.dart';
 import '../bindings/track_binding.dart';
+import '../bindings/track_follow_binding.dart';
 
 class AppRoutes {
   AppRoutes._();
@@ -37,6 +39,9 @@ class AppRoutes {
   static const String recordTrack = '/record-track';
   /// Live OSM map while recording (Socket.io + draft track).
   static const String liveMapRecording = '/live-map-recording';
+
+  /// Full-screen Google Map while following a published track; pass `TrackModel` as [Get.arguments].
+  static const String followTrack = '/follow-track';
   static const String liveSession = '/live-session';
   static const String groups = '/groups';
   static const String events = '/events';
@@ -93,4 +98,12 @@ class AppRoutes {
 
   /// [GetPage.binding] for community flows.
   static Bindings bindingCommunity() => CommunityBinding();
+
+  /// [GetPage.binding] for [followTrack] (Google Map follow session).
+  static Bindings bindingFollowTrack() => BindingsBuilder(() {
+        if (!Get.isRegistered<Connectivity>()) {
+          Get.put<Connectivity>(Connectivity(), permanent: true);
+        }
+        TrackFollowBinding().dependencies();
+      });
 }

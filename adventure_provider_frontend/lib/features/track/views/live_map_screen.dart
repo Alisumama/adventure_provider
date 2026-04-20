@@ -32,33 +32,18 @@ void _showLiveFlagTooltip(BuildContext context, tm.LiveTrackFlag flag) {
             children: [
               Row(
                 children: [
-                  TrackFlagTypeCircleIcon(
-                    type: flag.type,
-                    size: 32,
-                    iconSize: 18,
-                  ),
+                  TrackFlagTypeCircleIcon(type: flag.type, size: 32, iconSize: 18),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       title,
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                        color: AppColors.textPrimary,
-                      ),
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 16, color: AppColors.textPrimary),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 10),
-              Text(
-                body,
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  height: 1.35,
-                  color: AppColors.textSecondary,
-                ),
-              ),
+              Text(body, style: GoogleFonts.poppins(fontSize: 14, height: 1.35, color: AppColors.textSecondary)),
             ],
           ),
         ),
@@ -78,11 +63,13 @@ class LiveMapScreen extends StatefulWidget {
 class _LiveMapScreenState extends State<LiveMapScreen> {
   final MapController _mapController = MapController();
   Worker? _pathWorker;
+
   /// Observable so the location dot rebuilds when GPS resolves (path may still be empty).
   final Rxn<ll.LatLng> _gpsDot = Rxn<ll.LatLng>();
 
   /// After [Geolocator] resolves; map is built only when true.
   bool _mapBootstrapComplete = false;
+
   /// Non-null only when GPS succeeded; never a placeholder coordinate.
   ll.LatLng? _deviceCenter;
 
@@ -112,13 +99,7 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         if (!mounted) return;
-        Get.snackbar(
-          'Location off',
-          'Turn on location services to center the map on you. Showing world view.',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: AppColors.darkSurface,
-          colorText: AppColors.surface,
-        );
+        Get.snackbar('Location off', 'Turn on location services to center the map on you. Showing world view.', snackPosition: SnackPosition.BOTTOM, backgroundColor: AppColors.darkSurface, colorText: AppColors.surface);
         setState(() {
           _deviceCenter = null;
           _mapBootstrapComplete = true;
@@ -126,11 +107,7 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
         return;
       }
 
-      final pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
-      );
+      final pos = await Geolocator.getCurrentPosition(locationSettings: const LocationSettings(accuracy: LocationAccuracy.high));
       if (!mounted) return;
       final target = ll.LatLng(pos.latitude, pos.longitude);
       setState(() {
@@ -140,13 +117,7 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
       });
     } catch (_) {
       if (!mounted) return;
-      Get.snackbar(
-        'Could not get location',
-        'We could not read your position. You can still record and move the map.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: AppColors.darkSurface,
-        colorText: AppColors.surface,
-      );
+      Get.snackbar('Could not get location', 'We could not read your position. You can still record and move the map.', snackPosition: SnackPosition.BOTTOM, backgroundColor: AppColors.darkSurface, colorText: AppColors.surface);
       setState(() {
         _deviceCenter = null;
         _mapBootstrapComplete = true;
@@ -182,31 +153,16 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
 
   MapOptions _buildMapOptions() {
     void onTap(TapPosition tapPosition, ll.LatLng latLng) {
-      Get.find<TrackController>().onMapTap(
-        tm.LatLng(latLng.latitude, latLng.longitude),
-      );
+      Get.find<TrackController>().onMapTap(tm.LatLng(latLng.latitude, latLng.longitude));
     }
 
     final center = _deviceCenter;
     if (center != null) {
-      return MapOptions(
-        initialCenter: center,
-        initialZoom: _kStreetTrailZoom,
-        backgroundColor: AppColors.mapPreviewBackground,
-        onMapReady: _onMapReadyCenterDevice,
-        onTap: onTap,
-      );
+      return MapOptions(initialCenter: center, initialZoom: _kStreetTrailZoom, backgroundColor: AppColors.mapPreviewBackground, onMapReady: _onMapReadyCenterDevice, onTap: onTap);
     }
 
     return MapOptions(
-      initialCameraFit: CameraFit.bounds(
-        bounds: LatLngBounds(
-          const ll.LatLng(-85, -180),
-          const ll.LatLng(85, 180),
-        ),
-        maxZoom: _kFallbackWorldZoom,
-        minZoom: _kFallbackWorldZoom,
-      ),
+      initialCameraFit: CameraFit.bounds(bounds: LatLngBounds(const ll.LatLng(-85, -180), const ll.LatLng(85, 180)), maxZoom: _kFallbackWorldZoom, minZoom: _kFallbackWorldZoom),
       backgroundColor: AppColors.mapPreviewBackground,
       onTap: onTap,
     );
@@ -226,11 +182,7 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
     if (!_mapBootstrapComplete) {
       return Scaffold(
         backgroundColor: AppColors.darkBackground,
-        body: const Center(
-          child: CircularProgressIndicator(
-            color: AppColors.primaryLight,
-          ),
-        ),
+        body: const Center(child: CircularProgressIndicator(color: AppColors.primaryLight)),
       );
     }
 
@@ -242,25 +194,14 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
             mapController: _mapController,
             options: _buildMapOptions(),
             children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'adventure_provider_frontend',
-              ),
+              TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'adventure_provider_frontend'),
               Obx(() {
-                final pts = c.pathPoints
-                    .map((p) => ll.LatLng(p.latitude, p.longitude))
-                    .toList(growable: false);
+                final pts = c.pathPoints.map((p) => ll.LatLng(p.latitude, p.longitude)).toList(growable: false);
                 if (pts.length < 2) {
                   return const SizedBox.shrink();
                 }
                 return PolylineLayer(
-                  polylines: [
-                    Polyline(
-                      points: pts,
-                      color: AppColors.primary,
-                      strokeWidth: 4,
-                    ),
-                  ],
+                  polylines: [Polyline(points: pts, color: AppColors.primary, strokeWidth: 4)],
                 );
               }),
               Obx(() {
@@ -282,15 +223,7 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
                   return const SizedBox.shrink();
                 }
                 return CircleLayer(
-                  circles: [
-                    CircleMarker(
-                      point: dot,
-                      radius: 9,
-                      color: AppColors.primaryLight,
-                      borderStrokeWidth: 2,
-                      borderColor: AppColors.surface,
-                    ),
-                  ],
+                  circles: [CircleMarker(point: dot, radius: 9, color: AppColors.primaryLight, borderStrokeWidth: 2, borderColor: AppColors.surface)],
                 );
               }),
               Obx(() {
@@ -302,9 +235,7 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
                   markers: [
                     for (var i = 0; i < flags.length; i++)
                       Marker(
-                        key: ValueKey<String>(
-                          'live_flag_${flags[i].lat}_${flags[i].lng}_${flags[i].type}_$i',
-                        ),
+                        key: ValueKey<String>('live_flag_${flags[i].lat}_${flags[i].lng}_${flags[i].type}_$i'),
                         point: ll.LatLng(flags[i].lat, flags[i].lng),
                         width: 40,
                         height: 40,
@@ -312,16 +243,9 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
                         child: Material(
                           color: AppColors.surface.withValues(alpha: 0),
                           child: InkWell(
-                            onTap: () => _showLiveFlagTooltip(
-                              context,
-                              flags[i],
-                            ),
+                            onTap: () => _showLiveFlagTooltip(context, flags[i]),
                             customBorder: const CircleBorder(),
-                            child: TrackFlagTypeCircleIcon(
-                              type: flags[i].type,
-                              size: 36,
-                              iconSize: 20,
-                            ),
+                            child: TrackFlagTypeCircleIcon(type: flags[i].type, size: 36, iconSize: 20),
                           ),
                         ),
                       ),
@@ -344,18 +268,11 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
                       color: AppColors.warning.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         child: Text(
                           'TAP MAP TO SIMULATE',
                           textAlign: TextAlign.center,
-                          style: GoogleFonts.bebasNeue(
-                            fontSize: 16,
-                            letterSpacing: 1.2,
-                            color: AppColors.surface,
-                          ),
+                          style: GoogleFonts.bebasNeue(fontSize: 16, letterSpacing: 1.2, color: AppColors.surface),
                         ),
                       ),
                     ),
@@ -367,10 +284,7 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
                     color: AppColors.darkSurface.withValues(alpha: 0.92),
                     borderRadius: BorderRadius.circular(12),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       child: Row(
                         children: [
                           Expanded(
@@ -380,11 +294,7 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
                                 name.isEmpty ? 'Live track' : name,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.bebasNeue(
-                                  fontSize: 20,
-                                  color: AppColors.surface,
-                                  letterSpacing: 0.5,
-                                ),
+                                style: GoogleFonts.bebasNeue(fontSize: 20, color: AppColors.surface, letterSpacing: 0.5),
                               );
                             }),
                           ),
@@ -393,11 +303,7 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
                             final t = _formatHms(c.recordingDuration.value);
                             return Text(
                               t,
-                              style: GoogleFonts.spaceMono(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.primaryLight,
-                              ),
+                              style: GoogleFonts.spaceMono(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.primaryLight),
                             );
                           }),
                         ],
@@ -430,24 +336,13 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    'DISTANCE (M)',
-                                    style: GoogleFonts.bebasNeue(
-                                      fontSize: 11,
-                                      letterSpacing: 1,
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ),
+                                  Text('DISTANCE (M)', style: GoogleFonts.bebasNeue(fontSize: 11, letterSpacing: 1, color: AppColors.textSecondary)),
                                   const SizedBox(height: 4),
                                   Obx(() {
                                     final m = c.recordingDistance.value.round();
                                     return Text(
                                       '$m',
-                                      style: GoogleFonts.spaceMono(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppColors.surface,
-                                      ),
+                                      style: GoogleFonts.spaceMono(fontSize: 22, fontWeight: FontWeight.w600, color: AppColors.surface),
                                     );
                                   }),
                                 ],
@@ -458,24 +353,13 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    'STEPS',
-                                    style: GoogleFonts.bebasNeue(
-                                      fontSize: 11,
-                                      letterSpacing: 1,
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ),
+                                  Text('STEPS', style: GoogleFonts.bebasNeue(fontSize: 11, letterSpacing: 1, color: AppColors.textSecondary)),
                                   const SizedBox(height: 4),
                                   Obx(() {
                                     final st = c.recordingSteps.value;
                                     return Text(
                                       '$st',
-                                      style: GoogleFonts.spaceMono(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppColors.surface,
-                                      ),
+                                      style: GoogleFonts.spaceMono(fontSize: 22, fontWeight: FontWeight.w600, color: AppColors.surface),
                                     );
                                   }),
                                 ],
@@ -499,37 +383,20 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
                             dotColor = AppColors.success;
                             statusLabel = 'All points synced';
                           }
-                          final pendingLabel = pending == 1
-                              ? '1 point pending'
-                              : '$pending points pending';
+                          final pendingLabel = pending == 1 ? '1 point pending' : '$pending points pending';
                           return Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Container(
                                 width: 6,
                                 height: 6,
-                                decoration: BoxDecoration(
-                                  color: dotColor,
-                                  shape: BoxShape.circle,
-                                ),
+                                decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
                               ),
                               const SizedBox(width: 8),
                               Expanded(
-                                child: Text(
-                                  statusLabel,
-                                  style: GoogleFonts.spaceMono(
-                                    fontSize: 10,
-                                    color: AppColors.homeGreetingGrey,
-                                  ),
-                                ),
+                                child: Text(statusLabel, style: GoogleFonts.spaceMono(fontSize: 10, color: AppColors.homeGreetingGrey)),
                               ),
-                              Text(
-                                pendingLabel,
-                                style: GoogleFonts.spaceMono(
-                                  fontSize: 10,
-                                  color: AppColors.homeGreetingGrey,
-                                ),
-                              ),
+                              Text(pendingLabel, style: GoogleFonts.spaceMono(fontSize: 10, color: AppColors.homeGreetingGrey)),
                             ],
                           );
                         }),
@@ -541,24 +408,11 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
                                 onPressed: () => AddFlagBottomSheet.show(context),
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: AppColors.primaryLight,
-                                  side: const BorderSide(
-                                    color: AppColors.primaryLight,
-                                    width: 1.5,
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 14,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
+                                  side: const BorderSide(color: AppColors.primaryLight, width: 1.5),
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 ),
-                                child: Text(
-                                  'Add Flag',
-                                  style: GoogleFonts.poppins(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
-                                  ),
-                                ),
+                                child: Text('Add Flag', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 14)),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -570,20 +424,10 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
                                 style: FilledButton.styleFrom(
                                   backgroundColor: AppColors.danger,
                                   foregroundColor: AppColors.surface,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 14,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 ),
-                                child: Text(
-                                  'End Track',
-                                  style: GoogleFonts.poppins(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
-                                  ),
-                                ),
+                                child: Text('End Track', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 14)),
                               ),
                             ),
                           ],

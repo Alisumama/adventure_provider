@@ -302,7 +302,19 @@ class _TrackDetailScreenState extends State<TrackDetailScreen> with SingleTicker
                             IconButton(
                               tooltip: 'Follow track',
                               onPressed: () {
-                                Get.snackbar('Coming soon', 'Track following will be available in a future update.', snackPosition: SnackPosition.BOTTOM, backgroundColor: AppColors.darkSurface, colorText: AppColors.surface, margin: const EdgeInsets.all(16));
+                                final tid = track.id;
+                                if (tid == null || tid.isEmpty || track.geoPath.isEmpty) {
+                                  Get.snackbar(
+                                    'Cannot follow',
+                                    'This track has no route to follow.',
+                                    snackPosition: SnackPosition.BOTTOM,
+                                    backgroundColor: AppColors.darkSurface,
+                                    colorText: AppColors.surface,
+                                    margin: const EdgeInsets.all(16),
+                                  );
+                                  return;
+                                }
+                                Get.toNamed(AppRoutes.followTrack, arguments: track);
                               },
                               icon: const Icon(Icons.navigation_rounded),
                               color: AppColors.surface,

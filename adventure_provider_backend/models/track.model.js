@@ -100,6 +100,8 @@ const trackSchema = new mongoose.Schema(
     likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     saves: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     isComplete: { type: Boolean, default: false },
+    /** Number of users who completed following this track (see TrackFollow). */
+    followCount: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
