@@ -18,13 +18,7 @@ class TrackListScreen extends StatefulWidget {
 }
 
 class _TrackListScreenState extends State<TrackListScreen> {
-  static const List<({String key, String label})> _filters = [
-    (key: 'all', label: 'All'),
-    (key: 'hiking', label: 'Hiking'),
-    (key: 'offroad', label: 'Offroad'),
-    (key: 'cycling', label: 'Cycling'),
-    (key: 'running', label: 'Running'),
-  ];
+  static const List<({String key, String label})> _filters = [(key: 'all', label: 'All'), (key: 'hiking', label: 'Hiking'), (key: 'offroad', label: 'Offroad'), (key: 'cycling', label: 'Cycling'), (key: 'running', label: 'Running')];
 
   @override
   void initState() {
@@ -51,14 +45,7 @@ class _TrackListScreenState extends State<TrackListScreen> {
               child: Row(
                 children: [
                   Expanded(
-                    child: Text(
-                      'MY TRACKS',
-                      style: GoogleFonts.bebasNeue(
-                        fontSize: 24,
-                        color: AppColors.surface,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
+                    child: Text('MY TRACKS', style: GoogleFonts.bebasNeue(fontSize: 24, color: AppColors.surface, letterSpacing: 1.2)),
                   ),
                   Material(
                     color: AppColors.darkSurface,
@@ -68,11 +55,7 @@ class _TrackListScreenState extends State<TrackListScreen> {
                       onTap: () => c.fetchMyTracks(),
                       child: const Padding(
                         padding: EdgeInsets.all(10),
-                        child: Icon(
-                          Icons.refresh_rounded,
-                          color: AppColors.primaryLight,
-                          size: 22,
-                        ),
+                        child: Icon(Icons.refresh_rounded, color: AppColors.primaryLight, size: 22),
                       ),
                     ),
                   ),
@@ -101,26 +84,18 @@ class _TrackListScreenState extends State<TrackListScreen> {
                 separatorBuilder: (_, __) => const SizedBox(width: 8),
                 itemBuilder: (context, i) {
                   final f = _filters[i];
-                    return Obx(() {
+                  return Obx(() {
                     final active = c.selectedFilter.value == f.key;
                     return ChoiceChip(
                       label: Text(
                         f.label,
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: active
-                              ? AppColors.surface
-                              : AppColors.homeGreetingGrey,
-                        ),
+                        style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w500, color: active ? AppColors.surface : AppColors.homeGreetingGrey),
                       ),
                       selected: active,
                       onSelected: (_) => c.selectedFilter.value = f.key,
                       selectedColor: AppColors.primary,
                       backgroundColor: AppColors.darkSurface,
-                      side: BorderSide(
-                        color: active ? AppColors.primary : AppColors.darkSurface,
-                      ),
+                      side: BorderSide(color: active ? AppColors.primary : AppColors.darkSurface),
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
                       showCheckmark: false,
                     );
@@ -134,20 +109,10 @@ class _TrackListScreenState extends State<TrackListScreen> {
                 final loading = c.isLoading.value;
                 final filter = c.selectedFilter.value;
                 final all = c.myTracks.toList();
-                final tracks = filter == 'all'
-                    ? all
-                    : all
-                        .where(
-                          (t) => t.type.toLowerCase() == filter,
-                        )
-                        .toList();
+                final tracks = filter == 'all' ? all : all.where((t) => t.type.toLowerCase() == filter).toList();
 
                 if (loading && all.isEmpty) {
-                  return const Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.primaryLight,
-                    ),
-                  );
+                  return const Center(child: CircularProgressIndicator(color: AppColors.primaryLight));
                 }
 
                 if (tracks.isEmpty) {
@@ -160,32 +125,19 @@ class _TrackListScreenState extends State<TrackListScreen> {
                           physics: const AlwaysScrollableScrollPhysics(),
                           children: [
                             SizedBox(
-                              height: constraints.maxHeight > 200
-                                  ? constraints.maxHeight * 0.65
-                                  : 280,
+                              height: constraints.maxHeight > 200 ? constraints.maxHeight * 0.65 : 280,
                               child: Center(
                                 child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 32,
-                                  ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 32),
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(
-                                        Icons.terrain,
-                                        size: 72,
-                                        color: AppColors.primaryLight
-                                            .withValues(alpha: 0.6),
-                                      ),
+                                      Icon(Icons.terrain, size: 72, color: AppColors.primaryLight.withValues(alpha: 0.6)),
                                       const SizedBox(height: 16),
                                       Text(
                                         'No tracks yet. Start your first adventure!',
                                         textAlign: TextAlign.center,
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 15,
-                                          color: AppColors.homeGreetingGrey,
-                                          height: 1.4,
-                                        ),
+                                        style: GoogleFonts.poppins(fontSize: 15, color: AppColors.homeGreetingGrey, height: 1.4),
                                       ),
                                     ],
                                   ),
@@ -206,12 +158,7 @@ class _TrackListScreenState extends State<TrackListScreen> {
                       onRefresh: () => c.fetchMyTracks(),
                       child: ListView.builder(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(
-                          16,
-                          0,
-                          16,
-                          kSosFabScrollBottomInset,
-                        ),
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, kSosFabScrollBottomInset),
                         itemCount: tracks.length,
                         itemBuilder: (context, index) {
                           final track = tracks[index];
@@ -235,16 +182,7 @@ class _TrackListScreenState extends State<TrackListScreen> {
                         left: 0,
                         right: 0,
                         child: Center(
-                          child: SizedBox(
-                            width: 28,
-                            height: 28,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: AppColors.primaryLight.withValues(
-                                alpha: 0.9,
-                              ),
-                            ),
-                          ),
+                          child: SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.primaryLight.withValues(alpha: 0.9))),
                         ),
                       ),
                   ],
@@ -259,10 +197,7 @@ class _TrackListScreenState extends State<TrackListScreen> {
 }
 
 class _TrackCard extends StatelessWidget {
-  const _TrackCard({
-    required this.track,
-    required this.onTap,
-  });
+  const _TrackCard({required this.track, required this.onTap});
 
   final TrackModel track;
   final VoidCallback onTap;
@@ -300,11 +235,9 @@ class _TrackCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(16),
-              ),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
               child: SizedBox(
-                height: 160,
+                height: 120,
                 width: double.infinity,
                 child: _TrackRoutePreviewMap(track: track),
               ),
@@ -318,12 +251,7 @@ class _TrackCard extends StatelessWidget {
                     track.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.poppins(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.surface,
-                      height: 1.25,
-                    ),
+                    style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w500, color: AppColors.surface, height: 1.25),
                   ),
                   const SizedBox(height: 10),
                   Row(
@@ -333,10 +261,7 @@ class _TrackCard extends StatelessWidget {
                           '${track.distanceKm} km',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            color: AppColors.homeGreetingGrey,
-                          ),
+                          style: GoogleFonts.poppins(fontSize: 13, color: AppColors.homeGreetingGrey),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -345,69 +270,20 @@ class _TrackCard extends StatelessWidget {
                           track.durationFormatted,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            color: AppColors.homeGreetingGrey,
-                          ),
+                          style: GoogleFonts.poppins(fontSize: 13, color: AppColors.homeGreetingGrey),
                         ),
                       ),
                       const SizedBox(width: 10),
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: diffColor.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: diffColor.withValues(alpha: 0.55),
-                          ),
+                          border: Border.all(color: diffColor.withValues(alpha: 0.55)),
                         ),
                         child: Text(
                           _difficultyLabel(track.difficulty),
-                          style: GoogleFonts.poppins(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: diffColor,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        track.isLiked
-                            ? Icons.favorite_rounded
-                            : Icons.favorite_border_rounded,
-                        size: 16,
-                        color: AppColors.homeGreetingGrey,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${track.likesCount}',
-                        style: GoogleFonts.spaceMono(
-                          fontSize: 11,
-                          color: AppColors.surface,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Icon(
-                        track.isSaved
-                            ? Icons.bookmark_rounded
-                            : Icons.bookmark_border_rounded,
-                        size: 16,
-                        color: AppColors.homeGreetingGrey,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${track.savesCount}',
-                        style: GoogleFonts.spaceMono(
-                          fontSize: 11,
-                          color: AppColors.surface,
+                          style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: diffColor),
                         ),
                       ),
                     ],
@@ -442,9 +318,7 @@ class _TrackRoutePreviewMapState extends State<_TrackRoutePreviewMap> {
   }
 
   List<ll.LatLng> _pathPoints() {
-    return widget.track.geoPath
-        .map((p) => ll.LatLng(p.latitude, p.longitude))
-        .toList(growable: false);
+    return widget.track.geoPath.map((p) => ll.LatLng(p.latitude, p.longitude)).toList(growable: false);
   }
 
   ll.LatLng? _startPoint() {
@@ -488,12 +362,7 @@ class _TrackRoutePreviewMapState extends State<_TrackRoutePreviewMap> {
           _mapController.move(pts.first, 14);
           return;
         }
-        _mapController.fitCamera(
-          CameraFit.bounds(
-            bounds: LatLngBounds.fromPoints(pts),
-            padding: const EdgeInsets.all(10),
-          ),
-        );
+        _mapController.fitCamera(CameraFit.bounds(bounds: LatLngBounds.fromPoints(pts), padding: const EdgeInsets.all(10)));
       } catch (_) {}
     });
   }
@@ -510,13 +379,7 @@ class _TrackRoutePreviewMapState extends State<_TrackRoutePreviewMap> {
     if (start == null && end == null && path.isEmpty) {
       return ColoredBox(
         color: AppColors.mapPreviewBackground,
-        child: Center(
-          child: Icon(
-            Icons.route,
-            size: 40,
-            color: AppColors.homeGreetingGrey.withValues(alpha: 0.5),
-          ),
-        ),
+        child: Center(child: Icon(Icons.route, size: 40, color: AppColors.homeGreetingGrey.withValues(alpha: 0.5))),
       );
     }
 
@@ -527,47 +390,19 @@ class _TrackRoutePreviewMapState extends State<_TrackRoutePreviewMap> {
         initialCenter: initialCenter,
         initialZoom: initialZoom,
         backgroundColor: AppColors.mapPreviewBackground,
-        interactionOptions: const InteractionOptions(
-          flags: InteractiveFlag.none,
-        ),
+        interactionOptions: const InteractionOptions(flags: InteractiveFlag.none),
         onMapReady: _fitBounds,
       ),
       children: [
-        TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'adventure_provider_frontend',
-        ),
+        TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'adventure_provider_frontend'),
         if (hasPath)
           PolylineLayer(
-            polylines: [
-              Polyline(
-                points: path,
-                color: AppColors.primary,
-                strokeWidth: 3,
-              ),
-            ],
+            polylines: [Polyline(points: path, color: AppColors.primary, strokeWidth: 3)],
           ),
         CircleLayer(
           circles: [
-            if (start != null)
-              CircleMarker(
-                point: start,
-                radius: 5,
-                color: AppColors.primary,
-                borderStrokeWidth: 1.5,
-                borderColor: AppColors.surface,
-              ),
-            if (end != null &&
-                (start == null ||
-                    end.latitude != start.latitude ||
-                    end.longitude != start.longitude))
-              CircleMarker(
-                point: end,
-                radius: 5,
-                color: AppColors.danger,
-                borderStrokeWidth: 1.5,
-                borderColor: AppColors.surface,
-              ),
+            if (start != null) CircleMarker(point: start, radius: 5, color: AppColors.primary, borderStrokeWidth: 1.5, borderColor: AppColors.surface),
+            if (end != null && (start == null || end.latitude != start.latitude || end.longitude != start.longitude)) CircleMarker(point: end, radius: 5, color: AppColors.danger, borderStrokeWidth: 1.5, borderColor: AppColors.surface),
           ],
         ),
       ],

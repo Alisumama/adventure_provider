@@ -1,8 +1,11 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:get/get.dart' hide FormData, MultipartFile, Response;
 import 'package:image_picker/image_picker.dart';
 
 import '../../../auth/controllers/auth_controller.dart';
+import '../local/track_local_models.dart';
 import '../models/track_model.dart';
 
 class TrackRepository {
@@ -21,14 +24,10 @@ class TrackRepository {
   }
 
   void _throwIfBadResponse(Response<dynamic> response, [String fallback = 'Request failed']) {
-    final ok = response.statusCode != null &&
-        response.statusCode! >= 200 &&
-        response.statusCode! < 300;
+    final ok = response.statusCode != null && response.statusCode! >= 200 && response.statusCode! < 300;
     if (ok) return;
     final data = response.data;
-    final message = data is Map && data['message'] != null
-        ? data['message'].toString()
-        : fallback;
+    final message = data is Map && data['message'] != null ? data['message'].toString() : fallback;
     throw Exception(message);
   }
 
@@ -36,9 +35,7 @@ class TrackRepository {
     if (data is! List) {
       throw Exception('Invalid response');
     }
-    return data
-        .map((e) => TrackModel.fromJson(Map<String, dynamic>.from(e as Map)))
-        .toList();
+    return data.map((e) => TrackModel.fromJson(Map<String, dynamic>.from(e as Map))).toList();
   }
 
   TrackModel _parseTrack(dynamic data) {
@@ -51,10 +48,7 @@ class TrackRepository {
   /// POST /tracks/draft — minimal track for live recording (returns `_id` for Socket.io room).
   Future<TrackModel> createDraftTrack(Map<String, dynamic> data) async {
     try {
-      final response = await _dio.post<Map<String, dynamic>>(
-        '$_tracks/draft',
-        data: data,
-      );
+      final response = await _dio.post<Map<String, dynamic>>('$_tracks/draft', data: data);
       if (response.statusCode != 201 || response.data == null) {
         _throwIfBadResponse(response, 'Failed to start track');
       }
@@ -67,10 +61,7 @@ class TrackRepository {
   /// POST /tracks
   Future<TrackModel> createTrack(Map<String, dynamic> data) async {
     try {
-      final response = await _dio.post<Map<String, dynamic>>(
-        _tracks,
-        data: data,
-      );
+      final response = await _dio.post<Map<String, dynamic>>(_tracks, data: data);
       if (response.statusCode != 201 || response.data == null) {
         _throwIfBadResponse(response, 'Failed to create track');
       }
@@ -94,20 +85,9 @@ class TrackRepository {
   }
 
   /// GET /tracks/nearby?lat=&lng=&radius=
-  Future<List<TrackModel>> getNearbyTracks(
-    double lat,
-    double lng, {
-    double radius = 10000,
-  }) async {
+  Future<List<TrackModel>> getNearbyTracks(double lat, double lng, {double radius = 10000}) async {
     try {
-      final response = await _dio.get<dynamic>(
-        '$_tracks/nearby',
-        queryParameters: {
-          'lat': lat,
-          'lng': lng,
-          'radius': radius,
-        },
-      );
+      final response = await _dio.get<dynamic>('$_tracks/nearby', queryParameters: {'lat': lat, 'lng': lng, 'radius': radius});
       if (response.statusCode != 200) {
         _throwIfBadResponse(response, 'Failed to load nearby tracks');
       }
@@ -130,10 +110,7 @@ class TrackRepository {
       } catch (_) {
         uid = null;
       }
-      return TrackModel.fromJson(
-        Map<String, dynamic>.from(response.data!),
-        currentUserId: uid,
-      );
+      return TrackModel.fromJson(Map<String, dynamic>.from(response.data!), currentUserId: uid);
     } on DioException catch (e) {
       throw Exception(_messageFromDio(e, 'Failed to load track'));
     }
@@ -142,10 +119,7 @@ class TrackRepository {
   /// PUT /tracks/:id
   Future<TrackModel> updateTrack(String id, Map<String, dynamic> data) async {
     try {
-      final response = await _dio.put<Map<String, dynamic>>(
-        '$_tracks/$id',
-        data: data,
-      );
+      final response = await _dio.put<Map<String, dynamic>>('$_tracks/$id', data: data);
       if (response.statusCode != 200 || response.data == null) {
         _throwIfBadResponse(response, 'Failed to update track');
       }
@@ -199,16 +173,8 @@ class TrackRepository {
       final bytes = await file.readAsBytes();
       final name = file.name.trim();
       final filename = name.isNotEmpty ? name : 'flag.jpg';
-      final formData = FormData.fromMap({
-        'image': MultipartFile.fromBytes(
-          bytes,
-          filename: filename,
-        ),
-      });
-      final response = await _dio.post<Map<String, dynamic>>(
-        '$_tracks/$trackId/flag-image',
-        data: formData,
-      );
+      final formData = FormData.fromMap({'image': MultipartFile.fromBytes(bytes, filename: filename)});
+      final response = await _dio.post<Map<String, dynamic>>('$_tracks/$trackId/flag-image', data: formData);
       if (response.statusCode != 200 || response.data == null) {
         _throwIfBadResponse(response, 'Failed to upload image');
       }
@@ -225,10 +191,7 @@ class TrackRepository {
   /// POST /tracks/:id/flag
   Future<TrackModel> addFlag(String trackId, Map<String, dynamic> flagData) async {
     try {
-      final response = await _dio.post<Map<String, dynamic>>(
-        '$_tracks/$trackId/flag',
-        data: flagData,
-      );
+      final response = await _dio.post<Map<String, dynamic>>('$_tracks/$trackId/flag', data: flagData);
       if (response.statusCode != 200 || response.data == null) {
         _throwIfBadResponse(response, 'Failed to add flag');
       }
@@ -241,10 +204,7 @@ class TrackRepository {
   /// POST /tracks/:id/photo
   Future<TrackModel> addPhoto(String trackId, String photoUrl) async {
     try {
-      final response = await _dio.post<Map<String, dynamic>>(
-        '$_tracks/$trackId/photo',
-        data: {'photoUrl': photoUrl},
-      );
+      final response = await _dio.post<Map<String, dynamic>>('$_tracks/$trackId/photo', data: {'photoUrl': photoUrl});
       if (response.statusCode != 200 || response.data == null) {
         _throwIfBadResponse(response, 'Failed to add photo');
       }
@@ -260,16 +220,8 @@ class TrackRepository {
       final bytes = await file.readAsBytes();
       final name = file.name.trim();
       final filename = name.isNotEmpty ? name : 'photo.jpg';
-      final formData = FormData.fromMap({
-        'photo': MultipartFile.fromBytes(
-          bytes,
-          filename: filename,
-        ),
-      });
-      final response = await _dio.post<Map<String, dynamic>>(
-        '$_tracks/$trackId/photos',
-        data: formData,
-      );
+      final formData = FormData.fromMap({'photo': MultipartFile.fromBytes(bytes, filename: filename)});
+      final response = await _dio.post<Map<String, dynamic>>('$_tracks/$trackId/photos', data: formData);
       if (response.statusCode != 200 || response.data == null) {
         _throwIfBadResponse(response, 'Failed to upload photo');
       }
@@ -279,10 +231,7 @@ class TrackRepository {
       } catch (_) {
         uid = null;
       }
-      return TrackModel.fromJson(
-        Map<String, dynamic>.from(response.data!),
-        currentUserId: uid,
-      );
+      return TrackModel.fromJson(Map<String, dynamic>.from(response.data!), currentUserId: uid);
     } on DioException catch (e) {
       throw Exception(_messageFromDio(e, 'Failed to upload photo'));
     }
@@ -291,9 +240,7 @@ class TrackRepository {
   /// DELETE /tracks/:id/photos/:photoIndex
   Future<TrackModel> deleteTrackPhoto(String trackId, int photoIndex) async {
     try {
-      final response = await _dio.delete<Map<String, dynamic>>(
-        '$_tracks/$trackId/photos/$photoIndex',
-      );
+      final response = await _dio.delete<Map<String, dynamic>>('$_tracks/$trackId/photos/$photoIndex');
       if (response.statusCode != 200 || response.data == null) {
         _throwIfBadResponse(response, 'Failed to delete photo');
       }
@@ -303,10 +250,7 @@ class TrackRepository {
       } catch (_) {
         uid = null;
       }
-      return TrackModel.fromJson(
-        Map<String, dynamic>.from(response.data!),
-        currentUserId: uid,
-      );
+      return TrackModel.fromJson(Map<String, dynamic>.from(response.data!), currentUserId: uid);
     } on DioException catch (e) {
       throw Exception(_messageFromDio(e, 'Failed to delete photo'));
     }
@@ -321,45 +265,26 @@ class TrackRepository {
   }
 
   /// POST /tracks/:id/flags — JSON body.
-  Future<TrackModel> postTrackFlag(
-    String trackId,
-    Map<String, dynamic> body,
-  ) async {
+  Future<TrackModel> postTrackFlag(String trackId, Map<String, dynamic> body) async {
     try {
-      final response = await _dio.post<Map<String, dynamic>>(
-        '$_tracks/$trackId/flags',
-        data: body,
-      );
+      final response = await _dio.post<Map<String, dynamic>>('$_tracks/$trackId/flags', data: body);
       if (response.statusCode != 200 || response.data == null) {
         _throwIfBadResponse(response, 'Failed to add flag');
       }
-      return TrackModel.fromJson(
-        Map<String, dynamic>.from(response.data!),
-        currentUserId: _currentUserId(),
-      );
+      return TrackModel.fromJson(Map<String, dynamic>.from(response.data!), currentUserId: _currentUserId());
     } on DioException catch (e) {
       throw Exception(_messageFromDio(e, 'Failed to add flag'));
     }
   }
 
   /// PUT /tracks/:id/flags/:flagId
-  Future<TrackModel> putTrackFlag(
-    String trackId,
-    String flagId,
-    Map<String, dynamic> body,
-  ) async {
+  Future<TrackModel> putTrackFlag(String trackId, String flagId, Map<String, dynamic> body) async {
     try {
-      final response = await _dio.put<Map<String, dynamic>>(
-        '$_tracks/$trackId/flags/$flagId',
-        data: body,
-      );
+      final response = await _dio.put<Map<String, dynamic>>('$_tracks/$trackId/flags/$flagId', data: body);
       if (response.statusCode != 200 || response.data == null) {
         _throwIfBadResponse(response, 'Failed to update flag');
       }
-      return TrackModel.fromJson(
-        Map<String, dynamic>.from(response.data!),
-        currentUserId: _currentUserId(),
-      );
+      return TrackModel.fromJson(Map<String, dynamic>.from(response.data!), currentUserId: _currentUserId());
     } on DioException catch (e) {
       throw Exception(_messageFromDio(e, 'Failed to update flag'));
     }
@@ -368,18 +293,49 @@ class TrackRepository {
   /// DELETE /tracks/:id/flags/:flagId
   Future<TrackModel> deleteTrackFlag(String trackId, String flagId) async {
     try {
-      final response = await _dio.delete<Map<String, dynamic>>(
-        '$_tracks/$trackId/flags/$flagId',
-      );
+      final response = await _dio.delete<Map<String, dynamic>>('$_tracks/$trackId/flags/$flagId');
       if (response.statusCode != 200 || response.data == null) {
         _throwIfBadResponse(response, 'Failed to delete flag');
       }
-      return TrackModel.fromJson(
-        Map<String, dynamic>.from(response.data!),
-        currentUserId: _currentUserId(),
-      );
+      return TrackModel.fromJson(Map<String, dynamic>.from(response.data!), currentUserId: _currentUserId());
     } on DioException catch (e) {
       throw Exception(_messageFromDio(e, 'Failed to delete flag'));
+    }
+  }
+
+  /// POST /tracks/:id/complete — final metadata; marks track completed.
+  Future<TrackModel> completeTrack(String trackId, Map<String, dynamic> body) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>('$_tracks/$trackId/complete', data: body);
+      if (response.statusCode != 200 || response.data == null) {
+        _throwIfBadResponse(response, 'Failed to complete track');
+      }
+      return _parseTrack(response.data);
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e, 'Failed to complete track'));
+    }
+  }
+
+  /// POST /tracks/:id/sync — append GPS batch (offline buffer).
+  Future<void> syncTrackPoints(String trackId, List<TrackPointLocal> points) async {
+    print(
+      jsonEncode({
+        'points': points.map((p) => {'latitude': p.latitude, 'longitude': p.longitude, 'altitude': p.altitude, 'speed': p.speed, 'timestamp': p.timestamp.toIso8601String()}).toList(),
+      }),
+    );
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '$_tracks/$trackId/sync',
+        data: {
+          'points': points.map((p) => {'latitude': p.latitude, 'longitude': p.longitude, 'altitude': p.altitude, 'speed': p.speed, 'timestamp': p.timestamp.toIso8601String()}).toList(),
+        },
+        options: Options(sendTimeout: const Duration(seconds: 45), receiveTimeout: const Duration(seconds: 45)),
+      );
+      if (response.statusCode != 200) {
+        _throwIfBadResponse(response, 'Failed to sync points');
+      }
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e, 'Failed to sync points'));
     }
   }
 }

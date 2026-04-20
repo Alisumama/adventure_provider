@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 import 'core/bindings/initial_binding.dart';
 import 'core/constants/app_routes.dart';
@@ -26,9 +27,20 @@ import 'features/track/views/live_map_screen.dart';
 import 'features/track/views/record_track_screen.dart';
 import 'features/track/views/track_detail_screen.dart';
 import 'features/track/views/track_map_view_screen.dart';
+import 'features/track/data/local/track_local_models.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await Hive.initFlutter();
+    Hive.registerAdapter(TrackPointLocalAdapter());
+    Hive.registerAdapter(TrackSessionLocalAdapter());
+    await Hive.openBox('track_points');
+    await Hive.openBox('track_sessions');
+  } catch (e, stackTrace) {
+    debugPrint('Hive initialization failed: $e');
+    debugPrint('$stackTrace');
+  }
   runApp(const MyApp());
 }
 

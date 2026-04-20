@@ -145,12 +145,15 @@ class TrackModel {
   /// Kilometres, one decimal place (e.g. `"12.3"`).
   String get distanceKm => (distance / 1000).toStringAsFixed(1);
 
-  /// Total [duration] in seconds as `HH:MM` (hours may exceed 23).
+  /// Total [duration] in seconds, shown as `Xh`, `Ym`, or `Xh Ym` (e.g. `1h 30m`, `45m`).
   String get durationFormatted {
     final safe = duration < 0 ? 0 : duration;
     final h = safe ~/ 3600;
     final m = (safe % 3600) ~/ 60;
-    return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
+    if (safe == 0) return '0m';
+    if (h == 0) return '${m}m';
+    if (m == 0) return '${h}h';
+    return '${h}h ${m}m';
   }
 
   factory TrackModel.fromJson(

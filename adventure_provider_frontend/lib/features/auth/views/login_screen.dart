@@ -17,8 +17,8 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final _emailController = TextEditingController(text: 'ahabbasi3@gmail.com');
+  final _passwordController = TextEditingController(text: 'Admin@123');
   bool _obscurePassword = true;
 
   @override
@@ -52,14 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Positioned.fill(
                     child: DecoratedBox(
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            AppColors.primaryDark,
-                            AppColors.primaryDark.withOpacity(0.8),
-                          ],
-                        ),
+                        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [AppColors.primaryDark, AppColors.primaryDark.withOpacity(0.8)]),
                       ),
                     ),
                   ),
@@ -67,32 +60,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const SizedBox(
-                          width: 48,
-                          height: 48,
-                          child: Icon(
-                            Icons.terrain,
-                            size: 48,
-                            color: AppColors.primaryLight,
-                          ),
-                        ),
+                        const SizedBox(width: 48, height: 48, child: Icon(Icons.terrain, size: 48, color: AppColors.primaryLight)),
                         const SizedBox(height: 12),
                         Text(
                           'Welcome Back',
-                          style: GoogleFonts.poppins(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
+                          style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.w700, color: Colors.white),
                         ),
                         const SizedBox(height: 6),
-                        Text(
-                          'Your adventure awaits',
-                          style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            color: Colors.white60,
-                          ),
-                        ),
+                        Text('Your adventure awaits', style: GoogleFonts.poppins(fontSize: 13, color: Colors.white60)),
                       ],
                     ),
                   ),
@@ -104,10 +79,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 width: double.infinity,
                 decoration: const BoxDecoration(
                   color: AppColors.darkSurface,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(32),
-                    topRight: Radius.circular(32),
-                  ),
+                  borderRadius: BorderRadius.only(topLeft: Radius.circular(32), topRight: Radius.circular(32)),
                 ),
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(24),
@@ -140,8 +112,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           prefixIcon: Icons.lock_outlined,
                           isPassword: true,
                           isPasswordVisible: !_obscurePassword,
-                          onTogglePassword: () =>
-                              setState(() => _obscurePassword = !_obscurePassword),
+                          onTogglePassword: () => setState(() => _obscurePassword = !_obscurePassword),
                           validator: (v) {
                             if (v == null || v.isEmpty) {
                               return 'Password is required';
@@ -157,12 +128,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           alignment: Alignment.centerRight,
                           child: TextButton(
                             onPressed: () => Get.toNamed(AppRoutes.forgotPassword),
-                            child: Text(
-                              'Forgot Password?',
-                              style: GoogleFonts.poppins(
-                                color: AppColors.primaryLight,
-                              ),
-                            ),
+                            child: Text('Forgot Password?', style: GoogleFonts.poppins(color: AppColors.primaryLight)),
                           ),
                         ),
                         const SizedBox(height: 24),
@@ -177,10 +143,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   border: Border.all(color: AppColors.danger),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: Text(
-                                  controller.errorMessage.value,
-                                  style: const TextStyle(color: AppColors.danger),
-                                ),
+                                child: Text(controller.errorMessage.value, style: const TextStyle(color: AppColors.danger)),
                               ),
                             );
                           }
@@ -192,10 +155,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             isLoading: controller.isLoading.value,
                             onPressed: () {
                               if (_formKey.currentState?.validate() ?? false) {
-                                controller.login(
-                                  _emailController.text.trim(),
-                                  _passwordController.text,
-                                );
+                                controller.login(_emailController.text.trim(), _passwordController.text);
                               }
                             },
                           ),
@@ -204,20 +164,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(
-                              "Don't have an account? ",
-                              style: GoogleFonts.poppins(
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
+                            Text("Don't have an account? ", style: GoogleFonts.poppins(color: AppColors.textSecondary)),
                             TextButton(
                               onPressed: () => Get.toNamed(AppRoutes.register),
                               child: Text(
                                 'Sign Up',
-                                style: GoogleFonts.poppins(
-                                  color: AppColors.primaryLight,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                style: GoogleFonts.poppins(color: AppColors.primaryLight, fontWeight: FontWeight.w600),
                               ),
                             ),
                           ],

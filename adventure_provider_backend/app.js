@@ -6,6 +6,23 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+/** Log every `/api` HTTP call to the console when the response finishes. */
+app.use((req, res, next) => {
+  if (!req.originalUrl.startsWith('/api')) {
+    return next();
+  }
+  const started = Date.now();
+  res.on('finish', () => {
+    const ms = Date.now() - started;
+    const ip = req.ip || req.socket?.remoteAddress || '-';
+    console.log(
+      `[${new Date().toISOString()}] ${req.method} ${req.originalUrl} → ${res.statusCode} ${ms}ms [${ip}]`,
+    );
+  });
+  next();
+});
+
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.get('/', (req, res) => {

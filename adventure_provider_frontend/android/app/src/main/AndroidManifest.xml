@@ -15,7 +15,8 @@
     <application
         android:label="Adventure Providers"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:enableOnBackInvokedCallback="true">
         <activity
             android:name="com.example.adventure_provider_frontend.MainActivity"
             android:exported="true"

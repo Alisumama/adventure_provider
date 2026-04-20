@@ -14,7 +14,7 @@ initLiveTrackSocket(server);
 mongoose
   .connect(MONGODB_URI)
   .then(() => {
-    console.log('Successfully connected to MongoDB locally.');
+    console.log('Successfully connected to MongoDB remotely.');
   })
   .catch((error) => {
     console.error('Error connecting to MongoDB:', error);

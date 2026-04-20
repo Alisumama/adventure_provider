@@ -655,6 +655,117 @@ async function deleteTrackFlag(req, res) {
   }
 }
 
+/**
+ * POST /:id/sync — owner only. Body: { points: [{ latitude, longitude, altitude, speed, timestamp }], distance?, duration? }
+ * Appends [lng, lat] pairs to geoPath.coordinates; optional distance/duration on the track.
+ */
+async function syncTrackPoints(req, res) {
+  try {
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ message: 'Invalid track id' });
+    }
+
+    const { points, distance, duration } = req.body;
+    if (!Array.isArray(points) || points.length === 0) {
+      return res.status(400).json({ message: 'points must be a non-empty array' });
+    }
+
+    const track = await Track.findOne({ _id: id, userId: req.user._id });
+    if (!track) {
+      return res.status(404).json({ message: 'Track not found' });
+    }
+
+    const coords = [];
+    for (const p of points) {
+      const lat = Number(p.latitude);
+      const lng = Number(p.longitude);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        return res.status(400).json({ message: 'Each point must have valid latitude and longitude' });
+      }
+      coords.push([lng, lat]);
+    }
+
+    if (!track.geoPath || !Array.isArray(track.geoPath.coordinates)) {
+      await Track.updateOne(
+        { _id: id, userId: req.user._id },
+        { $set: { geoPath: { type: 'LineString', coordinates: [] } } }
+      );
+    }
+
+    const update = {
+      $push: { 'geoPath.coordinates': { $each: coords } },
+    };
+    const $set = {};
+    if (distance !== undefined && distance !== null) {
+      $set.distance = Number(distance);
+    }
+    if (duration !== undefined && duration !== null) {
+      $set.duration = Number(duration);
+    }
+    if (Object.keys($set).length) {
+      update.$set = $set;
+    }
+
+    await Track.updateOne({ _id: id, userId: req.user._id }, update);
+
+    return res.status(200).json({ success: true, synced: points.length });
+  } catch (err) {
+    console.error('syncTrackPoints error:', err);
+    return res.status(500).json({ message: err.message || 'Failed to sync points' });
+  }
+}
+
+/**
+ * POST /:id/complete — owner only. Final metadata; marks track completed.
+ * Body: { title, description, type, difficulty, distance, duration, steps, calories }
+ */
+async function completeTrack(req, res) {
+  try {
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ message: 'Invalid track id' });
+    }
+
+    const {
+      title,
+      description,
+      type,
+      difficulty,
+      distance,
+      duration,
+      steps,
+      calories,
+    } = req.body;
+
+    const track = await Track.findOne({ _id: id, userId: req.user._id });
+    if (!track) {
+      return res.status(404).json({ message: 'Track not found' });
+    }
+
+    if (title !== undefined) track.title = title;
+    if (description !== undefined) track.description = description;
+    if (type !== undefined) track.type = type;
+    if (difficulty !== undefined) track.difficulty = difficulty;
+    if (distance !== undefined) track.distance = Number(distance);
+    if (duration !== undefined) track.duration = Number(duration);
+    if (steps !== undefined) track.steps = Number(steps);
+    if (calories !== undefined) track.calories = Number(calories);
+
+    track.status = 'completed';
+    track.isComplete = true;
+
+    await track.save();
+    return res.status(200).json(track);
+  } catch (err) {
+    console.error('completeTrack error:', err);
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ message: err.message });
+    }
+    return res.status(500).json({ message: err.message || 'Failed to complete track' });
+  }
+}
+
 module.exports = {
   createTrack,
   createDraftTrack,
@@ -673,4 +784,6 @@ module.exports = {
   postTrackFlag,
   putTrackFlag,
   deleteTrackFlag,
+  syncTrackPoints,
+  completeTrack,
 };

@@ -483,6 +483,56 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
                             ),
                           ],
                         ),
+                        const SizedBox(height: 10),
+                        Obx(() {
+                          final online = c.isOnline.value;
+                          final pending = c.pendingPointsCount.value;
+                          final Color dotColor;
+                          final String statusLabel;
+                          if (!online) {
+                            dotColor = AppColors.accent;
+                            statusLabel = 'Offline — saving locally';
+                          } else if (pending > 0) {
+                            dotColor = AppColors.success;
+                            statusLabel = 'Syncing to cloud...';
+                          } else {
+                            dotColor = AppColors.success;
+                            statusLabel = 'All points synced';
+                          }
+                          final pendingLabel = pending == 1
+                              ? '1 point pending'
+                              : '$pending points pending';
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  color: dotColor,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  statusLabel,
+                                  style: GoogleFonts.spaceMono(
+                                    fontSize: 10,
+                                    color: AppColors.homeGreetingGrey,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                pendingLabel,
+                                style: GoogleFonts.spaceMono(
+                                  fontSize: 10,
+                                  color: AppColors.homeGreetingGrey,
+                                ),
+                              ),
+                            ],
+                          );
+                        }),
                         const SizedBox(height: 16),
                         Row(
                           children: [

@@ -35,6 +35,9 @@ router.post('/:id/flags', authMiddleware, trackController.postTrackFlag);
 router.put('/:id/flags/:flagId', authMiddleware, trackController.putTrackFlag);
 router.delete('/:id/flags/:flagId', authMiddleware, trackController.deleteTrackFlag);
 
+router.post('/:id/sync', authMiddleware, trackController.syncTrackPoints);
+router.post('/:id/complete', authMiddleware, trackController.completeTrack);
+
 router.get('/:id', authMiddleware, trackController.getTrackById);
 router.put('/:id', authMiddleware, trackController.updateTrack);
 router.delete('/:id', authMiddleware, trackController.deleteTrack);

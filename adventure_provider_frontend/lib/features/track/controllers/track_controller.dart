@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -8,17 +10,30 @@ import 'package:socket_io_client/socket_io_client.dart' as sio;
 
 import '../../../core/constants/api_config.dart';
 import '../../../core/constants/app_routes.dart';
+import '../../../core/controllers/navigation_controller.dart';
 import '../../../core/services/image_upload_service.dart';
+import '../../../core/services/track_sync_service.dart';
 import '../../auth/controllers/auth_controller.dart';
+import '../data/local/local_track_repository.dart';
+import '../data/local/track_local_models.dart';
 import '../data/models/add_flag_data.dart';
 import '../data/models/track_model.dart';
 import '../data/repositories/track_repository.dart';
 
 class TrackController extends GetxController {
-  TrackController(this._repository, this._imageUpload);
+  TrackController(
+    this._repository,
+    this._imageUpload,
+    this._local,
+    this._trackSync,
+    this._connectivity,
+  );
 
   final TrackRepository _repository;
   final ImageUploadService _imageUpload;
+  final LocalTrackRepository _local;
+  final TrackSyncService _trackSync;
+  final Connectivity _connectivity;
 
   final RxList<TrackModel> myTracks = <TrackModel>[].obs;
   final RxList<TrackModel> nearbyTracks = <TrackModel>[].obs;
@@ -32,6 +47,15 @@ class TrackController extends GetxController {
 
   final RxBool isLoading = false.obs;
   final RxBool isRecording = false.obs;
+
+  /// True when device has network (used for offline recording UX).
+  final RxBool isOnline = true.obs;
+
+  /// Unsynced GPS points for the active legacy session ([activeSessionId]).
+  final RxInt pendingPointsCount = 0.obs;
+
+  /// Local Hive session id for [startRecording] (not the live-map draft id).
+  final RxString activeSessionId = ''.obs;
 
   /// Track list filter: `all` | `hiking` | `offroad` | `cycling` | `running`.
   final RxString selectedFilter = 'all'.obs;
@@ -64,6 +88,11 @@ class TrackController extends GetxController {
   /// Live session GPS ([startGpsTracking] / [pauseGps] / [resumeGps]).
   StreamSubscription<Position>? _gpsPositionSub;
   Timer? _durationTimer;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+
+  /// Hive [TrackPointLocal.id] must be unique; [microsecondsSinceEpoch] alone can repeat in one frame.
+  int _legacyPointSeq = 0;
+  int _livePointSeq = 0;
 
   static const double _avgStepMeters = 0.762;
   static const double _kcalPerMeter = 0.055;
@@ -109,6 +138,187 @@ class TrackController extends GetxController {
         (recordingDistance.value / _avgStepMeters).floor().clamp(0, 1 << 30);
     recordingCalories.value =
         (recordingDistance.value * _kcalPerMeter).round().clamp(0, 1 << 30);
+  }
+
+  @override
+  void onInit() {
+    super.onInit();
+    _connectivitySub = _connectivity.onConnectivityChanged.listen(_onConnectivityChanged);
+    unawaited(_seedIsOnline());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_handleInterruptedSessionsIfAny());
+    });
+  }
+
+  /// Prompts when local Hive has [TrackSessionLocal] rows with [TrackSessionLocal.isCompleted] == false.
+  Future<void> _handleInterruptedSessionsIfAny() async {
+    final incomplete = _local.getAllIncompleteSessions();
+    if (incomplete.isEmpty) return;
+
+    final save = await Get.dialog<bool>(
+      AlertDialog(
+        title: const Text('Unfinished session'),
+        content: const Text(
+          'You have an unfinished track session. Would you like to save it or discard it?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back<bool>(result: false),
+            child: const Text('Discard'),
+          ),
+          FilledButton(
+            onPressed: () => Get.back<bool>(result: true),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+      barrierDismissible: false,
+    );
+
+    if (save == true) {
+      incomplete.sort((a, b) => b.startedAt.compareTo(a.startedAt));
+      final primary = incomplete.first;
+      for (final s in incomplete) {
+        if (s.sessionId != primary.sessionId) {
+          _local.deleteSession(s.sessionId);
+        }
+      }
+      await _restoreInterruptedSessionForSave(primary);
+      final points = _local.getSessionPoints(primary.sessionId);
+      if (points.isEmpty) {
+        Get.snackbar(
+          'Nothing to save',
+          'This session has no GPS points.',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        _local.deleteSession(primary.sessionId);
+        _discardLegacyRecordingAfterSave();
+        return;
+      }
+      _showRecordingCompleteSheet();
+    } else {
+      for (final s in incomplete) {
+        _local.deleteSession(s.sessionId);
+      }
+    }
+  }
+
+  /// Rehydrates [recordingPath] / stats from Hive after a crash or force-close during recording.
+  Future<void> _restoreInterruptedSessionForSave(TrackSessionLocal session) async {
+    final sid = session.sessionId;
+    final points = _local.getSessionPoints(sid);
+    points.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+    final latLngs = points.map((p) => LatLng(p.latitude, p.longitude)).toList();
+    recordingPath.assignAll(latLngs);
+    pathPoints.assignAll(latLngs);
+
+    var dist = 0.0;
+    for (var i = 1; i < latLngs.length; i++) {
+      final a = latLngs[i - 1];
+      final b = latLngs[i];
+      dist += Geolocator.distanceBetween(
+        a.latitude,
+        a.longitude,
+        b.latitude,
+        b.longitude,
+      );
+    }
+    recordingDistance.value = dist;
+    _updateStepsAndCalories();
+
+    final durationSec = session.duration > 0
+        ? session.duration
+        : (points.isNotEmpty
+            ? points.last.timestamp.difference(session.startedAt).inSeconds.clamp(0, 1 << 30)
+            : 0);
+    recordingDuration.value = durationSec;
+
+    currentLocation.value = latLngs.isNotEmpty ? latLngs.last : null;
+
+    activeSessionId.value = sid;
+    pendingPointsCount.value = _local.getUnsyncedPoints(sid).length;
+
+    final updated = _local.getSession(sid);
+    if (updated != null) {
+      updated.isCompleted = true;
+      updated.totalPoints = latLngs.length;
+      updated.distance = dist;
+      updated.steps = recordingSteps.value;
+      updated.calories = recordingCalories.value;
+      updated.duration = recordingDuration.value;
+      _local.updateSession(updated);
+    }
+
+    await _trackSync.forceSync(sid);
+    _trackSync.stopSync();
+    await _tryCreateServerTrackForSession(sid);
+    pendingPointsCount.value = _local.getUnsyncedPoints(sid).length;
+  }
+
+  Future<void> _seedIsOnline() async {
+    final r = await _connectivity.checkConnectivity();
+    isOnline.value = r.any((x) => x != ConnectivityResult.none);
+    if (isOnline.value) {
+      await _flushLocalTracksWhenOnline();
+    }
+  }
+
+  void _onConnectivityChanged(List<ConnectivityResult> results) {
+    isOnline.value = results.any((r) => r != ConnectivityResult.none);
+    if (isOnline.value) {
+      unawaited(_flushLocalTracksWhenOnline());
+    }
+  }
+
+  /// Creates server tracks for any local session missing [TrackSessionLocal.serverTrackId], then
+  /// pushes all unsynced [TrackPointLocal] rows from Hive via [TrackSyncService].
+  Future<void> _flushLocalTracksWhenOnline() async {
+    final sessionsWithPending = _local.getSessionIdsWithUnsyncedPoints();
+    for (final sid in sessionsWithPending) {
+      final s = _local.getSession(sid);
+      if (s != null && s.serverTrackId.isEmpty) {
+        await _tryCreateServerTrackForSession(sid);
+      }
+    }
+    await _trackSync.syncAllUnsyncedSessions();
+    final active = activeSessionId.value;
+    if (active.isNotEmpty) {
+      pendingPointsCount.value = _local.getUnsyncedPoints(active).length;
+    }
+  }
+
+  /// POST /tracks with minimal payload; persists [TrackSessionLocal.serverTrackId] when online.
+  Future<void> _tryCreateServerTrackForSession(String sessionId) async {
+    final existing = _local.getSession(sessionId);
+    if (existing == null || existing.serverTrackId.isNotEmpty) return;
+    try {
+      final created = await _repository.createTrack(<String, dynamic>{
+        'title': 'Recording',
+        'description': '',
+        'type': 'hiking',
+        'difficulty': 'moderate',
+        'distance': 0,
+        'duration': 0,
+        'steps': 0,
+        'calories': 0,
+        'isPublic': true,
+        'geoPath': <String, dynamic>{
+          'type': 'LineString',
+          'coordinates': <dynamic>[],
+        },
+      });
+      final id = created.id;
+      if (id == null || id.isEmpty) return;
+      final s = _local.getSession(sessionId);
+      if (s == null) return;
+      s.serverTrackId = id;
+      _local.updateSession(s);
+      await _trackSync.forceSync(sessionId);
+      pendingPointsCount.value = _local.getUnsyncedPoints(sessionId).length;
+    } catch (_) {
+      // Offline or failed; retry when connectivity updates.
+    }
   }
 
   Future<bool> _ensureLocationPermission() async {
@@ -326,6 +536,17 @@ class TrackController extends GetxController {
       recordingCalories.value = 0;
       currentLocation.value = null;
 
+      // Create local Hive session for offline-first sync.
+      final session = TrackSessionLocal(
+        sessionId: id,
+        startedAt: DateTime.now(),
+        serverTrackId: id,
+      );
+      _local.saveSession(session);
+      activeSessionId.value = id;
+      _livePointSeq = 0;
+      _trackSync.startSync(id);
+
       isRecording.value = true;
 
       _durationTimer?.cancel();
@@ -453,10 +674,20 @@ class TrackController extends GetxController {
     final tid = liveTrackId.value;
     if (tid.isEmpty) return;
 
-    _socket?.emit('location_update', <String, dynamic>{
-      'trackId': tid,
-      'coordinates': <double>[point.longitude, point.latitude],
-    });
+    // Persist to Hive — sync service pushes unsynced points via HTTP every 3 s.
+    _livePointSeq++;
+    final pid = '${tid}_p$_livePointSeq';
+    final localPoint = TrackPointLocal(
+      id: pid,
+      trackSessionId: tid,
+      latitude: point.latitude,
+      longitude: point.longitude,
+      altitude: 0,
+      speed: 0,
+      timestamp: DateTime.now(),
+    );
+    _local.saveTrackPoint(localPoint);
+    pendingPointsCount.value = _local.getUnsyncedPoints(tid).length;
   }
 
   /// Testing mode: simulate GPS by tapping the map.
@@ -543,6 +774,7 @@ class TrackController extends GetxController {
   }
 
   Future<void> _resetLiveSession({required bool clearDraftId}) async {
+    _trackSync.stopSync();
     _durationTimer?.cancel();
     _durationTimer = null;
     await _gpsPositionSub?.cancel();
@@ -563,6 +795,8 @@ class TrackController extends GetxController {
       liveTrackId.value = '';
     }
     liveFlags.clear();
+    activeSessionId.value = '';
+    pendingPointsCount.value = 0;
     _disconnectSocket();
   }
 
@@ -581,6 +815,23 @@ class TrackController extends GetxController {
       );
       return;
     }
+
+    // Flush all remaining offline points to the server before finalizing.
+    await _trackSync.forceSync(tid);
+    _trackSync.stopSync();
+
+    // Mark Hive session complete and clean up synced rows.
+    final session = _local.getSession(tid);
+    if (session != null) {
+      session.isCompleted = true;
+      session.totalPoints = pathPoints.length;
+      session.distance = recordingDistance.value;
+      session.steps = recordingSteps.value;
+      session.calories = recordingCalories.value;
+      session.duration = recordingDuration.value;
+      _local.updateSession(session);
+    }
+    _local.clearSyncedPoints(tid);
 
     try {
       _socket?.emit('end_track', <String, dynamic>{
@@ -603,7 +854,9 @@ class TrackController extends GetxController {
     }
 
     await _resetLiveSession(clearDraftId: true);
-    Get.back<void>();
+    Get.until((route) => route.settings.name == AppRoutes.home);
+    Get.find<NavigationController>().changePage(NavigationController.tabTrack);
+    await fetchMyTracks();
   }
 
   Future<void> startRecording() async {
@@ -611,8 +864,25 @@ class TrackController extends GetxController {
     if (liveTrackId.value.isNotEmpty) {
       return;
     }
+
+    final auth = Get.find<AuthController>();
+    final uid = auth.user.value?.id;
+    if (uid == null || uid.isEmpty) {
+      Get.snackbar(
+        'Sign in required',
+        'Please sign in to record a track.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
     final ok = await _ensureLocationPermission();
     if (!ok) return;
+
+    final sessionId = DateTime.now().millisecondsSinceEpoch.toString();
+    activeSessionId.value = sessionId;
+    pendingPointsCount.value = 0;
+    _legacyPointSeq = 0;
 
     recordingPath.clear();
     pathPoints.clear();
@@ -621,6 +891,15 @@ class TrackController extends GetxController {
     recordingSteps.value = 0;
     recordingCalories.value = 0;
     currentLocation.value = null;
+
+    final session = TrackSessionLocal(
+      sessionId: sessionId,
+      startedAt: DateTime.now(),
+    );
+    _local.saveSession(session);
+
+    await _tryCreateServerTrackForSession(sessionId);
+    _trackSync.startSync(sessionId);
 
     isRecording.value = true;
 
@@ -654,6 +933,20 @@ class TrackController extends GetxController {
         recordingPath.add(point);
         pathPoints.add(point);
         currentLocation.value = point;
+
+        _legacyPointSeq++;
+        final pid = '${sessionId}_p$_legacyPointSeq';
+        final localPoint = TrackPointLocal(
+          id: pid,
+          trackSessionId: sessionId,
+          latitude: position.latitude,
+          longitude: position.longitude,
+          altitude: position.altitude.isFinite ? position.altitude : 0,
+          speed: position.speed.isFinite ? position.speed : 0,
+          timestamp: position.timestamp,
+        );
+        _local.saveTrackPoint(localPoint);
+        pendingPointsCount.value = _local.getUnsyncedPoints(sessionId).length;
       },
       onError: (Object e) {
         Get.snackbar(
@@ -673,7 +966,7 @@ class TrackController extends GetxController {
     isRecording.value = false;
   }
 
-  void _discardRecording() {
+  void _discardLegacyRecordingAfterSave() {
     recordingPath.clear();
     pathPoints.clear();
     recordingDistance.value = 0;
@@ -681,6 +974,8 @@ class TrackController extends GetxController {
     recordingSteps.value = 0;
     recordingCalories.value = 0;
     currentLocation.value = null;
+    activeSessionId.value = '';
+    pendingPointsCount.value = 0;
   }
 
   /// Stops GPS and timer. For live sessions, use [endTrack] instead.
@@ -690,6 +985,8 @@ class TrackController extends GetxController {
       return;
     }
     if (!isRecording.value) return;
+
+    final sid = activeSessionId.value;
     await _stopRecordingCore();
 
     if (recordingPath.isEmpty) {
@@ -698,45 +995,157 @@ class TrackController extends GetxController {
         'No GPS points were recorded.',
         snackPosition: SnackPosition.BOTTOM,
       );
+      if (sid.isNotEmpty) {
+        _local.deleteSession(sid);
+        activeSessionId.value = '';
+        pendingPointsCount.value = 0;
+      }
+      _trackSync.stopSync();
+      return;
     }
+
+    if (sid.isNotEmpty) {
+      await _trackSync.forceSync(sid);
+      _trackSync.stopSync();
+
+      final s = _local.getSession(sid);
+      if (s != null) {
+        s.isCompleted = true;
+        s.totalPoints = recordingPath.length;
+        s.distance = recordingDistance.value;
+        s.steps = recordingSteps.value;
+        s.calories = recordingCalories.value;
+        s.duration = recordingDuration.value;
+        _local.updateSession(s);
+      }
+      pendingPointsCount.value = _local.getUnsyncedPoints(sid).length;
+    }
+
+    _showRecordingCompleteSheet();
   }
 
-  Map<String, dynamic> _buildCreatePayload({
-    required String title,
-    required String description,
-    required String type,
-    required String difficulty,
-  }) {
-    final path = List<LatLng>.from(recordingPath);
-    final start = path.isNotEmpty ? path.first : null;
-    final end = path.isNotEmpty ? path.last : null;
+  void _showRecordingCompleteSheet() {
+    final titleCtrl = TextEditingController(text: 'My track');
+    final descCtrl = TextEditingController();
+    var trackType = 'hiking';
+    var difficulty = 'moderate';
 
-    return {
-      'title': title,
-      'description': description,
-      'type': type,
-      'difficulty': difficulty,
-      'distance': recordingDistance.value.round(),
-      'duration': recordingDuration.value,
-      'steps': recordingSteps.value,
-      'calories': recordingCalories.value,
-      'isPublic': true,
-      'geoPath': {
-        'type': 'LineString',
-        'coordinates':
-            path.map((p) => [p.longitude, p.latitude]).toList(growable: false),
-      },
-      if (start != null)
-        'startPoint': {
-          'type': 'Point',
-          'coordinates': [start.longitude, start.latitude],
+    const types = <String>['hiking', 'offroad', 'cycling', 'running'];
+    const diffs = <String>['easy', 'moderate', 'hard'];
+
+    Get.bottomSheet<void>(
+      StatefulBuilder(
+        builder: (context, setSheetState) {
+          return SafeArea(
+            child: Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 16,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Save track',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: titleCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Title',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: descCtrl,
+                      maxLines: 2,
+                      decoration: const InputDecoration(
+                        labelText: 'Description',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Type',
+                        border: OutlineInputBorder(),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: trackType,
+                          isExpanded: true,
+                          items: types
+                              .map(
+                                (t) => DropdownMenuItem(
+                                  value: t,
+                                  child: Text(t),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (v) {
+                            if (v != null) {
+                              setSheetState(() => trackType = v);
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Difficulty',
+                        border: OutlineInputBorder(),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: difficulty,
+                          isExpanded: true,
+                          items: diffs
+                              .map(
+                                (d) => DropdownMenuItem(
+                                  value: d,
+                                  child: Text(d),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (v) {
+                            if (v != null) {
+                              setSheetState(() => difficulty = v);
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    FilledButton(
+                      onPressed: () async {
+                        await saveRecordedTrack(
+                          titleCtrl.text.trim(),
+                          descCtrl.text.trim(),
+                          trackType,
+                          difficulty,
+                        );
+                      },
+                      child: const Text('Save'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
         },
-      if (end != null)
-        'endPoint': {
-          'type': 'Point',
-          'coordinates': [end.longitude, end.latitude],
-        },
-    };
+      ),
+      isScrollControlled: true,
+    ).then((_) {
+      titleCtrl.dispose();
+      descCtrl.dispose();
+    });
   }
 
   Future<void> saveRecordedTrack(
@@ -754,27 +1163,92 @@ class TrackController extends GetxController {
       return;
     }
 
+    final trimmedTitle = title.trim();
+    if (trimmedTitle.isEmpty) {
+      Get.snackbar(
+        'Title required',
+        'Enter a title for your track.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
+    final sid = activeSessionId.value;
+    if (sid.isEmpty) {
+      Get.snackbar(
+        'No session',
+        'Nothing to save.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
+    await _tryCreateServerTrackForSession(sid);
+    var session = _local.getSession(sid);
+    var trackId = session?.serverTrackId ?? '';
+    if (trackId.isEmpty) {
+      Get.snackbar(
+        'Offline',
+        'Could not create the track on the server yet. Go online and tap Save again.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
     isLoading.value = true;
     try {
-      final data = _buildCreatePayload(
-        title: title,
-        description: description,
-        type: type,
-        difficulty: difficulty,
-      );
-      final created = await _repository.createTrack(data);
-      myTracks.insert(0, created);
-      _discardRecording();
+      final completed = await _repository.completeTrack(trackId, <String, dynamic>{
+        'title': trimmedTitle,
+        'description': description,
+        'type': type,
+        'difficulty': difficulty,
+        'distance': recordingDistance.value.round(),
+        'duration': recordingDuration.value,
+        'steps': recordingSteps.value,
+        'calories': recordingCalories.value,
+      });
+      myTracks.insert(0, completed);
+      _local.clearSyncedPoints(sid);
+      session = _local.getSession(sid);
+      if (session != null) {
+        session.isSynced = true;
+        _local.updateSession(session);
+      }
+      _discardLegacyRecordingAfterSave();
+      if (Get.isBottomSheetOpen == true) {
+        Get.back<void>();
+      }
       Get.snackbar(
         'Saved',
         'Track saved successfully.',
         snackPosition: SnackPosition.BOTTOM,
       );
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        _friendlyMessage(e),
-        snackPosition: SnackPosition.BOTTOM,
+      Get.dialog<void>(
+        AlertDialog(
+          title: const Text('Could not save'),
+          content: Text(_friendlyMessage(e)),
+          actions: [
+            TextButton(
+              onPressed: Get.back<void>,
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Get.back<void>();
+                unawaited(
+                  saveRecordedTrack(
+                    trimmedTitle,
+                    description,
+                    type,
+                    difficulty,
+                  ),
+                );
+              },
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
       );
     } finally {
       isLoading.value = false;
@@ -971,6 +1445,8 @@ class TrackController extends GetxController {
 
   @override
   void onClose() {
+    _connectivitySub?.cancel();
+    _connectivitySub = null;
     _durationTimer?.cancel();
     _gpsPositionSub?.cancel();
     _positionSub?.cancel();
