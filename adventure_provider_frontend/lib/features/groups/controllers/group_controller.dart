@@ -139,8 +139,10 @@ class GroupController extends GetxController {
       }
 
       final socket = Get.find<SocketService>();
-      socket.joinGroupRoom(groupId, sessionId);
+      final connected = await socket.ensureConnected();
+      debugPrint('[GroupController] socket connected=$connected before joinGroupRoom');
       _bindGroupSocketListeners(socket);
+      socket.joinGroupRoom(groupId, sessionId);
       _startGpsStream(groupId, sessionId, socket);
 
       isTracking.value = true;
@@ -192,8 +194,10 @@ class GroupController extends GetxController {
       }
 
       final socket = Get.find<SocketService>();
-      socket.joinGroupRoom(groupId, targetSessionId);
+      final connected = await socket.ensureConnected();
+      debugPrint('[GroupController] socket connected=$connected before joinExistingLiveSession');
       _bindGroupSocketListeners(socket);
+      socket.joinGroupRoom(groupId, targetSessionId);
       _startGpsStream(groupId, targetSessionId, socket);
 
       isTracking.value = true;
@@ -208,6 +212,7 @@ class GroupController extends GetxController {
     socket.offAllGroupListeners();
 
     socket.onMemberLocation((data) {
+      debugPrint('[GroupController] member_location received: $data');
       final incomingSessionId = data['liveSessionId']?.toString();
       final currentSessionId = liveSessionId.value;
       if (incomingSessionId != null &&
@@ -241,6 +246,7 @@ class GroupController extends GetxController {
     });
 
     socket.onMemberJoined((data) {
+      debugPrint('[GroupController] member_joined received: $data');
       final userId = data['userId']?.toString() ?? '';
       final name = data['name']?.toString() ?? '';
       if (userId.isNotEmpty) {

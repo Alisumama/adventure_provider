@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 
@@ -5,12 +7,14 @@ import '../constants/api_config.dart';
 
 class SocketService {
   io.Socket? _socket;
+  Completer<void>? _connectCompleter;
 
   bool get isConnected => _socket?.connected ?? false;
 
   void connect(String token) {
     // Dispose any existing socket before creating a new one
     _socket?.dispose();
+    _connectCompleter = Completer<void>();
 
     final url = '${ApiConfig.serverOrigin}/group';
     debugPrint('[SocketService] connecting to $url');
@@ -25,7 +29,12 @@ class SocketService {
           .build(),
     );
 
-    _socket!.onConnect((_) => debugPrint('[SocketService] connected'));
+    _socket!.onConnect((_) {
+      debugPrint('[SocketService] connected (id=${_socket?.id})');
+      if (_connectCompleter != null && !_connectCompleter!.isCompleted) {
+        _connectCompleter!.complete();
+      }
+    });
     _socket!.onDisconnect((_) => debugPrint('[SocketService] disconnected'));
     _socket!.onConnectError(
         (err) => debugPrint('[SocketService] connect_error: $err'));
@@ -33,16 +42,31 @@ class SocketService {
     _socket!.connect();
   }
 
+  /// Waits until the socket is connected, with a timeout.
+  Future<bool> ensureConnected({Duration timeout = const Duration(seconds: 5)}) async {
+    if (isConnected) return true;
+    if (_connectCompleter == null) return false;
+    try {
+      await _connectCompleter!.future.timeout(timeout);
+      return isConnected;
+    } catch (_) {
+      debugPrint('[SocketService] ensureConnected timed out');
+      return false;
+    }
+  }
+
   void disconnect() {
     _socket?.disconnect();
     _socket?.dispose();
     _socket = null;
+    _connectCompleter = null;
   }
 
   // ── Emitters ──
 
   void joinGroupRoom(String groupId, String liveSessionId) {
-    debugPrint('[SocketService] joinGroupRoom groupId=$groupId sessionId=$liveSessionId connected=$isConnected');
+    debugPrint(
+        '[SocketService] joinGroupRoom groupId=$groupId sessionId=$liveSessionId connected=$isConnected');
     _socket?.emit('join_group_room', {
       'groupId': groupId,
       'liveSessionId': liveSessionId,
@@ -58,7 +82,6 @@ class SocketService {
 
   void sendLocationUpdate(
       String groupId, String liveSessionId, double lat, double lng) {
-    debugPrint('[SocketService] sendLocationUpdate lat=$lat lng=$lng connected=$isConnected');
     _socket?.emit('location_update', {
       'groupId': groupId,
       'liveSessionId': liveSessionId,
