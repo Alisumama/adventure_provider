@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:dio/dio.dart';
 
 import '../../../core/constants/app_routes.dart';
+import '../../../core/services/socket_service.dart';
 import '../data/models/user_model.dart';
 import '../data/repositories/auth_repository.dart';
 
@@ -28,6 +29,12 @@ class AuthController extends GetxController {
   void onInit() {
     super.onInit();
     _autoLogin();
+  }
+
+  void _connectSocket(String token) {
+    if (Get.isRegistered<SocketService>()) {
+      Get.find<SocketService>().connect(token);
+    }
   }
 
   void _setAuthHeader(String? accessToken) {
@@ -64,6 +71,7 @@ class AuthController extends GetxController {
         final u = await _repository.getMe();
         if (u != null) {
           user.value = u;
+          _connectSocket(accessToken);
           Get.offAllNamed(AppRoutes.home);
           return;
         }
@@ -91,6 +99,7 @@ class AuthController extends GetxController {
       _setAuthHeader(newAccess);
 
       user.value = UserModel.fromJson(Map<String, dynamic>.from(userJson));
+      _connectSocket(newAccess);
       Get.offAllNamed(AppRoutes.home);
     } catch (_) {
       await _clearTokens();
@@ -110,6 +119,7 @@ class AuthController extends GetxController {
         await _storage.write(key: _kAccessToken, value: session.accessToken);
         await _storage.write(key: _kRefreshToken, value: session.refreshToken);
         _setAuthHeader(session.accessToken);
+        _connectSocket(session.accessToken);
         Get.offAllNamed(AppRoutes.home);
       }
     } catch (e) {
@@ -129,6 +139,7 @@ class AuthController extends GetxController {
         await _storage.write(key: _kAccessToken, value: session.accessToken);
         await _storage.write(key: _kRefreshToken, value: session.refreshToken);
         _setAuthHeader(session.accessToken);
+        _connectSocket(session.accessToken);
         Get.offAllNamed(AppRoutes.home);
       }
     } on DioException catch (e) {

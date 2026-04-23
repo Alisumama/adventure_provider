@@ -121,6 +121,23 @@ async function getMyTracks(req, res) {
 }
 
 /**
+ * GET /public — all public, completed tracks.
+ */
+async function getPublicTracks(req, res) {
+  try {
+    const tracks = await Track.find({
+      isPublic: true,
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+    return res.status(200).json(tracks);
+  } catch (err) {
+    console.error('getPublicTracks error:', err);
+    return res.status(500).json({ message: err.message || 'Failed to fetch public tracks' });
+  }
+}
+
+/**
  * GET — query: lat, lng, radius (meters, default 10000). Public tracks near startPoint, max 20.
  */
 async function getNearbyTracks(req, res) {
@@ -770,6 +787,7 @@ module.exports = {
   createTrack,
   createDraftTrack,
   getMyTracks,
+  getPublicTracks,
   getNearbyTracks,
   getTrackById,
   updateTrack,

@@ -2,10 +2,12 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:get/get.dart';
 
 import '../controllers/navigation_controller.dart';
+import '../services/socket_service.dart';
 import '../services/track_sync_service.dart';
 import '../../features/track/data/local/local_track_repository.dart';
 import '../../features/track/data/repositories/track_repository.dart';
 import 'community_binding.dart';
+import 'group_binding.dart';
 import 'profile_binding.dart';
 import 'track_binding.dart';
 import 'track_follow_binding.dart';
@@ -40,8 +42,13 @@ class MainBinding extends Bindings {
         permanent: true,
       );
     }
+    if (!Get.isRegistered<SocketService>()) {
+      Get.put<SocketService>(SocketService(), permanent: true);
+    }
     ProfileBinding().dependencies();
 
     CommunityBinding().dependencies();
+
+    GroupBinding().dependencies();
   }
 }

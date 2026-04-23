@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(sips -g all /Users/alihassanabbasi/code/personal/sumama_fyp/adventure_provider/adventure_provider_frontend/assets/app_icon.png)",
-      "Bash(dart run:*)"
+      "Bash(dart run:*)",
+      "Bash(grep -r \"API_KEY\\\\|google_maps\\\\|GOOGLE_MAPS\" /Users/alihassanabbasi/code/personal/sumama_fyp/adventure_provider/adventure_provider_frontend --include=*.dart --include=*.xml --include=*.plist --include=*.yaml --include=*.yml --include=*.gradle --include=*.gradle.kts --include=*.swift --include=*.kt)",
+      "Bash(grep -r \"import.*google_maps_flutter\\\\|from.*google_maps_flutter\\\\|GoogleMap\\\\|GoogleMapController\" /Users/alihassanabbasi/code/personal/sumama_fyp/adventure_provider/adventure_provider_frontend/lib --include=*.dart)",
+      "Bash(find /Users/alihassanabbasi/code/personal/sumama_fyp/adventure_provider/adventure_provider_frontend -name .env* -o -name *.env -o -name *env*.dart)",
+      "Bash(flutter pub:*)"
     ]
   }
 }

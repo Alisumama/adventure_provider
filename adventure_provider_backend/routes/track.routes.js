@@ -8,6 +8,7 @@ const router = express.Router();
 router.post('/', authMiddleware, trackController.createTrack);
 router.post('/draft', authMiddleware, trackController.createDraftTrack);
 router.get('/my', authMiddleware, trackController.getMyTracks);
+router.get('/public', authMiddleware, trackController.getPublicTracks);
 router.get('/nearby', authMiddleware, trackController.getNearbyTracks);
 
 function handleTrackPhotoUpload(req, res, next) {

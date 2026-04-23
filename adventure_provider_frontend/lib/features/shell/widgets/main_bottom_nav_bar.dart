@@ -22,6 +22,11 @@ class MainBottomNavBar extends StatelessWidget {
     _TabSpec(
       iconFilled: Icons.group_rounded,
       iconOutlined: Icons.group_outlined,
+      label: 'GROUPS',
+    ),
+    _TabSpec(
+      iconFilled: Icons.forum_rounded,
+      iconOutlined: Icons.forum_outlined,
       label: 'COMMUNITY',
     ),
     _TabSpec(

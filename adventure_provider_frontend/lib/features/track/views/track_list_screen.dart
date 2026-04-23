@@ -19,14 +19,22 @@ class TrackListScreen extends StatefulWidget {
 
 class _TrackListScreenState extends State<TrackListScreen> {
   static const List<({String key, String label})> _filters = [(key: 'all', label: 'All'), (key: 'hiking', label: 'Hiking'), (key: 'offroad', label: 'Offroad'), (key: 'cycling', label: 'Cycling'), (key: 'running', label: 'Running')];
+  late final TextEditingController _searchCtrl;
 
   @override
   void initState() {
     super.initState();
+    _searchCtrl = TextEditingController();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      Get.find<TrackController>().fetchMyTracks();
+      Get.find<TrackController>().fetchPublicTracks();
     });
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
   }
 
   @override
@@ -45,14 +53,14 @@ class _TrackListScreenState extends State<TrackListScreen> {
               child: Row(
                 children: [
                   Expanded(
-                    child: Text('MY TRACKS', style: GoogleFonts.bebasNeue(fontSize: 24, color: AppColors.surface, letterSpacing: 1.2)),
+                    child: Text('PUBLIC TRACKS', style: GoogleFonts.bebasNeue(fontSize: 24, color: AppColors.surface, letterSpacing: 1.2)),
                   ),
                   Material(
                     color: AppColors.darkSurface,
                     shape: const CircleBorder(),
                     child: InkWell(
                       customBorder: const CircleBorder(),
-                      onTap: () => c.fetchMyTracks(),
+                      onTap: () => c.fetchPublicTracks(),
                       child: const Padding(
                         padding: EdgeInsets.all(10),
                         child: Icon(Icons.refresh_rounded, color: AppColors.primaryLight, size: 22),
@@ -103,13 +111,59 @@ class _TrackListScreenState extends State<TrackListScreen> {
                 },
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+              child: TextField(
+                controller: _searchCtrl,
+                onChanged: (v) => c.trackSearchQuery.value = v,
+                style: GoogleFonts.poppins(fontSize: 13, color: AppColors.surface),
+                decoration: InputDecoration(
+                  hintText: 'Search tracks by title or description',
+                  hintStyle: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: AppColors.homeGreetingGrey,
+                  ),
+                  prefixIcon: const Icon(Icons.search_rounded, color: AppColors.homeGreetingGrey, size: 20),
+                  suffixIcon: Obx(() {
+                    final q = c.trackSearchQuery.value;
+                    if (q.isEmpty) return const SizedBox.shrink();
+                    return IconButton(
+                      onPressed: () {
+                        _searchCtrl.clear();
+                        c.trackSearchQuery.value = '';
+                      },
+                      icon: const Icon(Icons.close_rounded, size: 18),
+                      color: AppColors.homeGreetingGrey,
+                    );
+                  }),
+                  filled: true,
+                  fillColor: AppColors.darkSurface,
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ),
             const SizedBox(height: 8),
             Expanded(
               child: Obx(() {
                 final loading = c.isLoading.value;
                 final filter = c.selectedFilter.value;
+                final q = c.trackSearchQuery.value.trim().toLowerCase();
                 final all = c.myTracks.toList();
-                final tracks = filter == 'all' ? all : all.where((t) => t.type.toLowerCase() == filter).toList();
+                final byType = filter == 'all'
+                    ? all
+                    : all.where((t) => t.type.toLowerCase() == filter).toList();
+                final tracks = q.isEmpty
+                    ? byType
+                    : byType.where((t) {
+                        final title = t.title.toLowerCase();
+                        final desc = (t.description ?? '').toLowerCase();
+                        return title.contains(q) || desc.contains(q);
+                      }).toList();
 
                 if (loading && all.isEmpty) {
                   return const Center(child: CircularProgressIndicator(color: AppColors.primaryLight));
@@ -118,7 +172,7 @@ class _TrackListScreenState extends State<TrackListScreen> {
                 if (tracks.isEmpty) {
                   return RefreshIndicator(
                     color: AppColors.primaryLight,
-                    onRefresh: () => c.fetchMyTracks(),
+                    onRefresh: () => c.fetchPublicTracks(),
                     child: LayoutBuilder(
                       builder: (context, constraints) {
                         return ListView(
@@ -135,7 +189,9 @@ class _TrackListScreenState extends State<TrackListScreen> {
                                       Icon(Icons.terrain, size: 72, color: AppColors.primaryLight.withValues(alpha: 0.6)),
                                       const SizedBox(height: 16),
                                       Text(
-                                        'No tracks yet. Start your first adventure!',
+                                        q.isNotEmpty
+                                            ? 'No tracks match your search.'
+                                            : 'No public tracks found yet.',
                                         textAlign: TextAlign.center,
                                         style: GoogleFonts.poppins(fontSize: 15, color: AppColors.homeGreetingGrey, height: 1.4),
                                       ),
@@ -155,7 +211,7 @@ class _TrackListScreenState extends State<TrackListScreen> {
                   children: [
                     RefreshIndicator(
                       color: AppColors.primaryLight,
-                      onRefresh: () => c.fetchMyTracks(),
+                      onRefresh: () => c.fetchPublicTracks(),
                       child: ListView.builder(
                         physics: const AlwaysScrollableScrollPhysics(),
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, kSosFabScrollBottomInset),

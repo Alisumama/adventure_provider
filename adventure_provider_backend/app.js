@@ -41,4 +41,7 @@ app.use('/api/community', communityRoutes);
 const trackFollowRoutes = require('./routes/track_follow.routes');
 app.use('/api/follow', trackFollowRoutes);
 
+const groupRoutes = require('./routes/group.routes');
+app.use('/api/groups', groupRoutes);
+
 module.exports = app;

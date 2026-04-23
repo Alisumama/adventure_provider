@@ -53,6 +53,7 @@ class TrackController extends GetxController {
 
   /// Track list filter: `all` | `hiking` | `offroad` | `cycling` | `running`.
   final RxString selectedFilter = 'all'.obs;
+  final RxString trackSearchQuery = ''.obs;
 
   /// Legacy list (kept in sync with [pathPoints] during live recording).
   final RxList<LatLng> recordingPath = <LatLng>[].obs;
@@ -348,6 +349,18 @@ class TrackController extends GetxController {
     isLoading.value = true;
     try {
       final list = await _repository.getMyTracks();
+      myTracks.assignAll(list);
+    } catch (e) {
+      Get.snackbar('Error', _friendlyMessage(e), snackPosition: SnackPosition.BOTTOM);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> fetchPublicTracks() async {
+    isLoading.value = true;
+    try {
+      final list = await _repository.getPublicTracks();
       myTracks.assignAll(list);
     } catch (e) {
       Get.snackbar('Error', _friendlyMessage(e), snackPosition: SnackPosition.BOTTOM);
