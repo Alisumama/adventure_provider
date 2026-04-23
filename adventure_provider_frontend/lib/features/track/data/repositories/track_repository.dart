@@ -84,6 +84,19 @@ class TrackRepository {
     }
   }
 
+  /// GET /tracks/public
+  Future<List<TrackModel>> getPublicTracks() async {
+    try {
+      final response = await _dio.get<dynamic>('$_tracks/public');
+      if (response.statusCode != 200) {
+        _throwIfBadResponse(response, 'Failed to load public tracks');
+      }
+      return _parseTrackList(response.data);
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e, 'Failed to load public tracks'));
+    }
+  }
+
   /// GET /tracks/nearby?lat=&lng=&radius=
   Future<List<TrackModel>> getNearbyTracks(double lat, double lng, {double radius = 10000}) async {
     try {

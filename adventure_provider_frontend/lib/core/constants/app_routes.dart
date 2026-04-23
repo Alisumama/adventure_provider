@@ -87,6 +87,14 @@ class AppRoutes {
   /// Edit rules screen (expects Get.arguments communityId).
   static const String editRules = '/edit-rules';
 
+  /// Group detail (`Get.parameters['id']`).
+  static const String groupDetail = '/group-detail';
+  static const String groupDetailPattern = '$groupDetail/:id';
+  static String groupDetailNamed(String id) => '$groupDetail/$id';
+
+  /// Live group tracking screen (expects Get.arguments groupId).
+  static const String liveGroupTracking = '/live-group-tracking';
+
   /// [GetPage.binding] for [home]: [NavigationController], [TrackRepository], [TrackController].
   static Bindings bindingHome() => MainBinding();
 

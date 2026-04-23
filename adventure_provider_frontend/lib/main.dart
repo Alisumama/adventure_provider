@@ -19,6 +19,8 @@ import 'features/community/views/create_community_screen.dart';
 import 'features/community/views/edit_rules_screen.dart';
 import 'features/community/views/image_gallery_screen.dart';
 import 'features/community/views/post_comments_screen.dart';
+import 'features/groups/views/group_detail_screen.dart';
+import 'features/groups/views/live_tracking_screen.dart';
 import 'features/profile/views/change_password_screen.dart';
 import 'features/profile/views/profile_screen.dart';
 import 'features/shell/main_shell_screen.dart';
@@ -217,6 +219,16 @@ class MyApp extends StatelessWidget {
           name: AppRoutes.editRules,
           page: () => const EditRulesScreen(),
           binding: AppRoutes.bindingCommunity(),
+        ),
+        GetPage(
+          name: AppRoutes.groupDetailPattern,
+          page: () => const GroupDetailScreen(),
+          binding: AppRoutes.bindingHome(),
+        ),
+        GetPage(
+          name: AppRoutes.liveGroupTracking,
+          page: () => const LiveTrackingScreen(),
+          binding: AppRoutes.bindingHome(),
         ),
       ],
     );

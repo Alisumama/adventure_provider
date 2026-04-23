@@ -1,7 +1,12 @@
 const { Server } = require('socket.io');
 const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
 
 const Track = require('../models/track.model');
+const User = require('../models/User');
+const LiveSession = require('../models/live_session.model');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'jwt-secret-change-in-production';
 
 function isValidObjectId(id) {
   return mongoose.Types.ObjectId.isValid(id);
@@ -46,6 +51,209 @@ function initLiveTrackSocket(server) {
     cors: { origin: '*', methods: ['GET', 'POST'] },
   });
 
+  // ── Group tracking namespace ──
+  const groupNsp = io.of('/group');
+
+  groupNsp.use(async (socket, next) => {
+    try {
+      const token = socket.handshake.auth && socket.handshake.auth.token;
+      if (!token) return next(new Error('Authentication required'));
+
+      const decoded = jwt.verify(token, JWT_SECRET);
+      const user = await User.findById(decoded.id).select('name profileImage').lean();
+      if (!user) return next(new Error('User not found'));
+
+      socket.userId = user._id.toString();
+      socket.userName = user.name || '';
+      socket.userProfileImage = user.profileImage || '';
+      next();
+    } catch (err) {
+      next(new Error('Invalid token'));
+    }
+  });
+
+  groupNsp.on('connection', (socket) => {
+    // Track which group rooms this socket has joined
+    const joinedRooms = new Map(); // groupId -> liveSessionId
+
+    socket.on('join_group_room', async (payload) => {
+      try {
+        const { groupId, liveSessionId } = payload || {};
+        if (!groupId || !liveSessionId) return;
+
+        const room = `group_${groupId}`;
+        socket.join(room);
+        joinedRooms.set(groupId, liveSessionId);
+
+        const uid = new mongoose.Types.ObjectId(socket.userId);
+        // Update member isOnline in LiveSession
+        const joinRes = await LiveSession.updateOne(
+          { _id: liveSessionId, 'memberSessions.userId': new mongoose.Types.ObjectId(socket.userId) },
+          { $set: { 'memberSessions.$.isOnline': true, 'memberSessions.$.joinedAt': new Date() } }
+        );
+        // Ensure member session exists so locationPath is persisted from first update.
+        if (!joinRes.matchedCount) {
+          await LiveSession.updateOne(
+            { _id: liveSessionId },
+            {
+              $push: {
+                memberSessions: {
+                  userId: uid,
+                  joinedAt: new Date(),
+                  isOnline: true,
+                  locationPath: [],
+                },
+              },
+            }
+          );
+        }
+
+        socket.to(room).emit('member_joined', {
+          userId: socket.userId,
+          name: socket.userName,
+          profileImage: socket.userProfileImage,
+        });
+      } catch (err) {
+        console.error('join_group_room', err);
+        socket.emit('group_error', { message: 'Failed to join group room' });
+      }
+    });
+
+    socket.on('location_update', async (payload) => {
+      try {
+        const { groupId, liveSessionId, latitude, longitude, timestamp } = payload || {};
+        if (!groupId || !liveSessionId || latitude == null || longitude == null) return;
+
+        const room = `group_${groupId}`;
+        const shortName = (socket.userName || '').split(' ')[0].slice(0, 8);
+
+        groupNsp.to(room).emit('member_location', {
+          userId: socket.userId,
+          name: socket.userName,
+          shortName,
+          profileImage: socket.userProfileImage,
+          liveSessionId,
+          latitude,
+          longitude,
+          timestamp: timestamp || Date.now(),
+        });
+
+        // Update LiveSession in background
+        const uid = new mongoose.Types.ObjectId(socket.userId);
+        const updateRes = await LiveSession.updateOne(
+          { _id: liveSessionId, 'memberSessions.userId': uid },
+          {
+            $set: {
+              'memberSessions.$.lastLocation': {
+                type: 'Point',
+                coordinates: [longitude, latitude],
+              },
+              'memberSessions.$.lastSeenAt': new Date(),
+              'memberSessions.$.isOnline': true,
+            },
+            $push: {
+              'memberSessions.$.locationPath': [longitude, latitude],
+            },
+          }
+        );
+        if (!updateRes.matchedCount) {
+          await LiveSession.updateOne(
+            { _id: liveSessionId },
+            {
+              $push: {
+                memberSessions: {
+                  userId: uid,
+                  joinedAt: new Date(),
+                  isOnline: true,
+                  lastLocation: {
+                    type: 'Point',
+                    coordinates: [longitude, latitude],
+                  },
+                  lastSeenAt: new Date(),
+                  locationPath: [[longitude, latitude]],
+                },
+              },
+            }
+          );
+        }
+      } catch (err) {
+        console.error('group location_update', err);
+      }
+    });
+
+    socket.on('leave_group_room', async (payload) => {
+      try {
+        const { groupId, liveSessionId } = payload || {};
+        if (!groupId || !liveSessionId) return;
+
+        const room = `group_${groupId}`;
+        const uid = new mongoose.Types.ObjectId(socket.userId);
+
+        await LiveSession.updateOne(
+          { _id: liveSessionId, 'memberSessions.userId': uid },
+          {
+            $set: {
+              'memberSessions.$.isOnline': false,
+              'memberSessions.$.leftAt': new Date(),
+            },
+          }
+        );
+
+        socket.to(room).emit('member_left', {
+          userId: socket.userId,
+          name: socket.userName,
+        });
+
+        socket.leave(room);
+        joinedRooms.delete(groupId);
+      } catch (err) {
+        console.error('leave_group_room', err);
+      }
+    });
+
+    socket.on('emergency_sos', (payload) => {
+      try {
+        const { groupId, latitude, longitude } = payload || {};
+        if (!groupId) return;
+
+        const room = `group_${groupId}`;
+        groupNsp.to(room).emit('emergency_alert', {
+          userId: socket.userId,
+          name: socket.userName,
+          profileImage: socket.userProfileImage,
+          latitude,
+          longitude,
+          timestamp: Date.now(),
+        });
+      } catch (err) {
+        console.error('emergency_sos', err);
+      }
+    });
+
+    socket.on('disconnect', async () => {
+      try {
+        for (const [groupId, liveSessionId] of joinedRooms) {
+          const room = `group_${groupId}`;
+          const uid = new mongoose.Types.ObjectId(socket.userId);
+
+          await LiveSession.updateOne(
+            { _id: liveSessionId, 'memberSessions.userId': uid },
+            { $set: { 'memberSessions.$.isOnline': false } }
+          );
+
+          socket.to(room).emit('member_left', {
+            userId: socket.userId,
+            name: socket.userName,
+          });
+        }
+        joinedRooms.clear();
+      } catch (err) {
+        console.error('group disconnect cleanup', err);
+      }
+    });
+  });
+
+  // ── Track recording (default namespace) ──
   io.on('connection', (socket) => {
     socket.on('start_track', async (payload) => {
       try {
