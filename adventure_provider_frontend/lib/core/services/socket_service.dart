@@ -9,18 +9,26 @@ class SocketService {
   bool get isConnected => _socket?.connected ?? false;
 
   void connect(String token) {
+    // Dispose any existing socket before creating a new one
+    _socket?.dispose();
+
+    final url = '${ApiConfig.serverOrigin}/group';
+    debugPrint('[SocketService] connecting to $url');
+
     _socket = io.io(
-      '${ApiConfig.serverOrigin}/group',
+      url,
       io.OptionBuilder()
           .setTransports(['websocket'])
           .setAuth({'token': token})
           .disableAutoConnect()
+          .enableForceNew()
           .build(),
     );
 
-    _socket!.onConnect((_) => debugPrint('Socket connected'));
-    _socket!.onDisconnect((_) => debugPrint('Socket disconnected'));
-    _socket!.onConnectError((err) => debugPrint('Socket connect_error: $err'));
+    _socket!.onConnect((_) => debugPrint('[SocketService] connected'));
+    _socket!.onDisconnect((_) => debugPrint('[SocketService] disconnected'));
+    _socket!.onConnectError(
+        (err) => debugPrint('[SocketService] connect_error: $err'));
 
     _socket!.connect();
   }
@@ -34,6 +42,7 @@ class SocketService {
   // ── Emitters ──
 
   void joinGroupRoom(String groupId, String liveSessionId) {
+    debugPrint('[SocketService] joinGroupRoom groupId=$groupId sessionId=$liveSessionId connected=$isConnected');
     _socket?.emit('join_group_room', {
       'groupId': groupId,
       'liveSessionId': liveSessionId,
@@ -49,6 +58,7 @@ class SocketService {
 
   void sendLocationUpdate(
       String groupId, String liveSessionId, double lat, double lng) {
+    debugPrint('[SocketService] sendLocationUpdate lat=$lat lng=$lng connected=$isConnected');
     _socket?.emit('location_update', {
       'groupId': groupId,
       'liveSessionId': liveSessionId,

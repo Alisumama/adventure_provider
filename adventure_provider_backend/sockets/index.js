@@ -73,12 +73,14 @@ function initLiveTrackSocket(server) {
   });
 
   groupNsp.on('connection', (socket) => {
+    console.log(`[group-socket] connected: userId=${socket.userId} name=${socket.userName}`);
     // Track which group rooms this socket has joined
     const joinedRooms = new Map(); // groupId -> liveSessionId
 
     socket.on('join_group_room', async (payload) => {
       try {
         const { groupId, liveSessionId } = payload || {};
+        console.log(`[group-socket] join_group_room userId=${socket.userId} groupId=${groupId} sessionId=${liveSessionId}`);
         if (!groupId || !liveSessionId) return;
 
         const room = `group_${groupId}`;
@@ -125,6 +127,8 @@ function initLiveTrackSocket(server) {
         if (!groupId || !liveSessionId || latitude == null || longitude == null) return;
 
         const room = `group_${groupId}`;
+        const roomSockets = await groupNsp.in(room).fetchSockets();
+        console.log(`[group-socket] location_update userId=${socket.userId} room=${room} socketsInRoom=${roomSockets.length} lat=${latitude} lng=${longitude}`);
         const shortName = (socket.userName || '').split(' ')[0].slice(0, 8);
 
         groupNsp.to(room).emit('member_location', {
