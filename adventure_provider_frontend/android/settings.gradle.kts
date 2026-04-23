@@ -19,8 +19,9 @@ pluginManagement {
 
 plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
-    id("com.android.application") version "8.9.1" apply false
-    id("org.jetbrains.kotlin.android") version "2.1.0" apply false
+    // Kotlin 2.3 stdlib metadata (pulled by Google Maps / maps-utils) requires AGP 8.13.2+ and Kotlin 2.3.
+    id("com.android.application") version "8.13.2" apply false
+    id("org.jetbrains.kotlin.android") version "2.3.10" apply false
 }
 
 include(":app")

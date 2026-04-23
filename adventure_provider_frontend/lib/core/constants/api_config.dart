@@ -11,7 +11,7 @@ class ApiConfig {
 
   /// Override when testing on a **real device**. Set to your PC's IP, e.g. `http://192.168.1.5:9090/api`.
   /// Leave null for emulator/simulator.
-  static const String? baseUrlOverride = null;
+  static const String? baseUrlOverride = 'http://192.168.1.101:9090/api';
 
   static const int _port = 9090;
   static const String _path = '/api';
