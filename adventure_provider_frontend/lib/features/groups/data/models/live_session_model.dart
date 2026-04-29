@@ -142,6 +142,7 @@ class LiveSessionModel {
     this.startedAt,
     this.isActive = true,
     this.memberSessions = const [],
+    this.trackId,
   });
 
   final String id;
@@ -150,6 +151,7 @@ class LiveSessionModel {
   final DateTime? startedAt;
   final bool isActive;
   final List<MemberSession> memberSessions;
+  final String? trackId;
 
   factory LiveSessionModel.fromJson(Map<String, dynamic> json) {
     final sessionsRaw = json['memberSessions'] as List<dynamic>?;
@@ -167,6 +169,7 @@ class LiveSessionModel {
           : null,
       isActive: json['isActive'] as bool? ?? true,
       memberSessions: memberSessions,
+      trackId: json['trackId']?.toString(),
     );
   }
 
@@ -177,6 +180,7 @@ class LiveSessionModel {
         if (startedAt != null) 'startedAt': startedAt!.toIso8601String(),
         'isActive': isActive,
         'memberSessions': memberSessions.map((m) => m.toJson()).toList(),
+        if (trackId != null) 'trackId': trackId,
       };
 
   LiveSessionModel copyWith({
@@ -186,6 +190,7 @@ class LiveSessionModel {
     DateTime? startedAt,
     bool? isActive,
     List<MemberSession>? memberSessions,
+    String? trackId,
   }) {
     return LiveSessionModel(
       id: id ?? this.id,
@@ -194,6 +199,7 @@ class LiveSessionModel {
       startedAt: startedAt ?? this.startedAt,
       isActive: isActive ?? this.isActive,
       memberSessions: memberSessions ?? this.memberSessions,
+      trackId: trackId ?? this.trackId,
     );
   }
 }

@@ -185,14 +185,21 @@ async function startGroupTracking(req, res) {
       return res.status(403).json({ message: 'Only admins can start tracking' });
     }
 
+    const { trackId } = req.body;
+
     group.isTrackingActive = true;
     group.trackingStartedAt = new Date();
     await group.save();
 
-    const liveSession = new LiveSession({
+    const sessionData = {
       groupId: group._id,
       startedBy: req.user._id,
-    });
+    };
+    if (trackId && isValidObjectId(trackId)) {
+      sessionData.trackId = trackId;
+    }
+
+    const liveSession = new LiveSession(sessionData);
     await liveSession.save();
 
     return res.status(200).json({

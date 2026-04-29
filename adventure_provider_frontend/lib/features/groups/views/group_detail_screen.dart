@@ -9,6 +9,8 @@ import '../../../core/constants/api_config.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/controllers/auth_controller.dart';
+import '../../track/controllers/track_controller.dart';
+import '../../track/data/models/track_model.dart';
 import '../controllers/group_controller.dart';
 import '../data/models/group_model.dart';
 
@@ -44,6 +46,16 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     }
   }
 
+  Future<void> _refreshGroup() async {
+    if (_groupId.isEmpty) return;
+    await _gc.fetchMyGroups();
+    final fresh = _gc.myGroups.firstWhereOrNull((g) => g.id == _groupId);
+    if (fresh != null) {
+      _gc.selectedGroup.value = fresh;
+    }
+    await _gc.fetchGroupLiveSessions(_groupId);
+  }
+
   String? _resolveImage(String? stored) => ApiConfig.resolveMediaUrl(stored);
 
   String _formatSessionTime(DateTime? dt) {
@@ -68,6 +80,40 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     Share.share(message, subject: 'Join ${group.name}');
   }
 
+  Future<void> _showTrackSelectionSheet() async {
+    final tc = Get.find<TrackController>();
+    // Kick off fetch — the sheet observes tc.isLoading / tc.myTracks reactively.
+    tc.fetchPublicTracks();
+
+    if (!mounted) return;
+    // Returns a TrackModel if selected, _SkipTrackSentinel if skipped, null if dismissed.
+    final result = await showModalBottomSheet<Object>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.darkSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => _TrackSelectionSheet(trackController: tc),
+    );
+
+    // Dismissed without action — do nothing.
+    if (result == null) return;
+
+    if (result is TrackModel) {
+      _gc.selectedTrackForSession.value = result;
+    } else {
+      // Skipped — no track overlay.
+      _gc.selectedTrackForSession.value = null;
+    }
+
+    await _gc.startGroupTracking(_groupId);
+    if (_gc.isTracking.value) {
+      await Get.toNamed(AppRoutes.liveGroupTracking, arguments: _groupId);
+      _refreshGroup();
+    }
+  }
+
   bool _isCurrentUserAdmin(GroupModel group) {
     final uid = _auth.user.value?.id;
     if (uid == null) return false;
@@ -82,7 +128,8 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
       preferredSessionId: sessionId,
     );
     if (_gc.isTracking.value) {
-      Get.toNamed(AppRoutes.liveGroupTracking, arguments: _groupId);
+      await Get.toNamed(AppRoutes.liveGroupTracking, arguments: _groupId);
+      _refreshGroup();
     }
   }
 
@@ -360,21 +407,16 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
           if (isAdmin && !tracking)
             _PrimaryButton(
               label: 'Start Group Tracking',
-              onTap: () async {
-                await _gc.startGroupTracking(_groupId);
-                if (_gc.isTracking.value) {
-                  Get.toNamed(AppRoutes.liveGroupTracking,
-                      arguments: _groupId);
-                }
-              },
+              onTap: () => _showTrackSelectionSheet(),
             ),
           if (tracking)
             _LiveButton(
               onTap: () async {
                 await _gc.joinExistingLiveSession(_groupId);
                 if (_gc.isTracking.value) {
-                  Get.toNamed(
+                  await Get.toNamed(
                       AppRoutes.liveGroupTracking, arguments: _groupId);
+                  _refreshGroup();
                 }
               },
             ),
@@ -596,6 +638,248 @@ class _LiveButtonState extends State<_LiveButton>
                   fontSize: 14,
                   color: Colors.white)),
         ],
+      ),
+    );
+  }
+}
+
+// ── Track selection bottom sheet ──
+
+/// Sentinel returned by [_TrackSelectionSheet] when user taps "Skip".
+class _SkipTrackSentinel {
+  const _SkipTrackSentinel();
+}
+
+class _TrackSelectionSheet extends StatelessWidget {
+  const _TrackSelectionSheet({required this.trackController});
+
+  final TrackController trackController;
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.6,
+      minChildSize: 0.3,
+      maxChildSize: 0.85,
+      expand: false,
+      builder: (_, scrollController) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'SELECT A TRACK',
+                          style: GoogleFonts.bebasNeue(
+                              fontSize: 18,
+                              color: Colors.white,
+                              letterSpacing: 1),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Choose a track to follow during the group session',
+                          style: GoogleFonts.poppins(
+                              fontSize: 12, color: Colors.white54),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () =>
+                        Navigator.of(context).pop(const _SkipTrackSentinel()),
+                    child: Text(
+                      'Skip',
+                      style: GoogleFonts.poppins(
+                          fontSize: 13, color: AppColors.primaryLight),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: Obx(() {
+                  final loading = trackController.isLoading.value;
+                  final tracks = trackController.myTracks;
+
+                  if (loading && tracks.isEmpty) {
+                    return const Center(
+                      child: CircularProgressIndicator(
+                          color: AppColors.primaryLight),
+                    );
+                  }
+
+                  if (tracks.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'No tracks available.\nCreate a track first.',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.poppins(
+                                fontSize: 13, color: Colors.white38),
+                          ),
+                          const SizedBox(height: 16),
+                          OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(
+                                  color: AppColors.primaryLight),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10)),
+                            ),
+                            onPressed: () => Navigator.of(context)
+                                .pop(const _SkipTrackSentinel()),
+                            child: Text(
+                              'Start without a track',
+                              style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: AppColors.primaryLight),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return ListView.separated(
+                    controller: scrollController,
+                    itemCount: tracks.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (_, index) {
+                      final track = tracks[index];
+                      return _TrackSelectionTile(
+                        track: track,
+                        onSelect: () => Navigator.of(context).pop(track),
+                        onViewDetails: () {
+                          Navigator.of(context).pop(); // close sheet
+                          Get.toNamed(
+                            AppRoutes.trackDetailNamed(track.id!),
+                          );
+                        },
+                      );
+                    },
+                  );
+                }),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _TrackSelectionTile extends StatelessWidget {
+  const _TrackSelectionTile({
+    required this.track,
+    required this.onSelect,
+    required this.onViewDetails,
+  });
+
+  final TrackModel track;
+  final VoidCallback onSelect;
+  final VoidCallback onViewDetails;
+
+  IconData _typeIcon(String type) {
+    switch (type) {
+      case 'hiking':
+        return Icons.terrain;
+      case 'cycling':
+        return Icons.directions_bike;
+      case 'running':
+        return Icons.directions_run;
+      case 'offroad':
+        return Icons.landscape;
+      default:
+        return Icons.route;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onSelect,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFF111827),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white12),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  _typeIcon(track.type),
+                  color: AppColors.primaryLight,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      track.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${track.distanceKm} km  ·  ${track.durationFormatted}  ·  ${track.difficulty}',
+                      style: GoogleFonts.spaceMono(
+                          fontSize: 10, color: Colors.white54),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 4),
+              IconButton(
+                onPressed: onViewDetails,
+                icon: const Icon(Icons.info_outline,
+                    color: Colors.white38, size: 20),
+                tooltip: 'View track details',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(
+                    minWidth: 32, minHeight: 32),
+              ),
+              const Icon(Icons.chevron_right,
+                  color: Colors.white38, size: 20),
+            ],
+          ),
+        ),
       ),
     );
   }

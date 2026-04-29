@@ -92,6 +92,9 @@ class AppRoutes {
   static const String groupDetailPattern = '$groupDetail/:id';
   static String groupDetailNamed(String id) => '$groupDetail/$id';
 
+  /// Full-screen explore map showing user location and nearby tracks.
+  static const String exploreMap = '/explore-map';
+
   /// Live group tracking screen (expects Get.arguments groupId).
   static const String liveGroupTracking = '/live-group-tracking';
 

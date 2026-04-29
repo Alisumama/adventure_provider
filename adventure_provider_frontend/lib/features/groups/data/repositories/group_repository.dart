@@ -86,10 +86,19 @@ class GroupRepository {
   }
 
   /// POST /groups/:id/start-tracking
-  Future<Map<String, dynamic>> startGroupTracking(String groupId) async {
+  Future<Map<String, dynamic>> startGroupTracking(
+    String groupId, {
+    String? trackId,
+  }) async {
     try {
-      final response =
-          await _dio.post<dynamic>('$_groups/$groupId/start-tracking');
+      final body = <String, dynamic>{};
+      if (trackId != null && trackId.isNotEmpty) {
+        body['trackId'] = trackId;
+      }
+      final response = await _dio.post<dynamic>(
+        '$_groups/$groupId/start-tracking',
+        data: body,
+      );
       return _requireMap(response.data);
     } on DioException catch (e) {
       throw Exception(_messageFromDio(e));

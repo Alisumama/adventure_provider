@@ -60,6 +60,11 @@ const liveSessionSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
+    trackId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Track',
+      default: null,
+    },
     startedAt: {
       type: Date,
       default: Date.now,
