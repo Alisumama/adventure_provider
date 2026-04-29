@@ -36,8 +36,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _showIpSettingsSheet() {
-    final ipController = TextEditingController(text: ApiConfig.currentIp ?? '');
-
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -45,8 +43,9 @@ class _LoginScreenState extends State<LoginScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (ctx) => _IpSettingsSheet(ipController: ipController),
-    ).then((_) => ipController.dispose());
+      builder: (ctx) =>
+          _IpSettingsSheet(initialIp: ApiConfig.currentIp ?? ''),
+    );
   }
 
   @override
@@ -212,9 +211,9 @@ class _LoginScreenState extends State<LoginScreen> {
 // ── IP Settings Bottom Sheet ──
 
 class _IpSettingsSheet extends StatefulWidget {
-  const _IpSettingsSheet({required this.ipController});
+  const _IpSettingsSheet({required this.initialIp});
 
-  final TextEditingController ipController;
+  final String initialIp;
 
   @override
   State<_IpSettingsSheet> createState() => _IpSettingsSheetState();
@@ -222,15 +221,23 @@ class _IpSettingsSheet extends StatefulWidget {
 
 class _IpSettingsSheetState extends State<_IpSettingsSheet> {
   late List<String> _history;
+  late final TextEditingController _ipController;
 
   @override
   void initState() {
     super.initState();
+    _ipController = TextEditingController(text: widget.initialIp);
     _history = ApiConfig.getIpHistory();
   }
 
+  @override
+  void dispose() {
+    _ipController.dispose();
+    super.dispose();
+  }
+
   Future<void> _applyIp() async {
-    final ip = widget.ipController.text.trim();
+    final ip = _ipController.text.trim();
     if (ip.isEmpty) {
       Get.snackbar('Invalid', 'Please enter an IP address',
           snackPosition: SnackPosition.BOTTOM);
@@ -253,17 +260,20 @@ class _IpSettingsSheetState extends State<_IpSettingsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 16,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
+    final maxHeight = MediaQuery.of(context).size.height * 0.85;
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxHeight),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 16,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
           Center(
             child: Container(
               width: 40,
@@ -287,7 +297,7 @@ class _IpSettingsSheetState extends State<_IpSettingsSheet> {
           ),
           const SizedBox(height: 16),
           TextField(
-            controller: widget.ipController,
+            controller: _ipController,
             style: GoogleFonts.spaceMono(fontSize: 14, color: Colors.white),
             keyboardType: TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
@@ -344,8 +354,7 @@ class _IpSettingsSheetState extends State<_IpSettingsSheet> {
                   color: Colors.transparent,
                   child: InkWell(
                     borderRadius: BorderRadius.circular(10),
-                    onTap: () =>
-                        widget.ipController.text = ip,
+                    onTap: () => _ipController.text = ip,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 10),
@@ -399,7 +408,8 @@ class _IpSettingsSheetState extends State<_IpSettingsSheet> {
               );
             }),
           ],
-        ],
+          ],
+        ),
       ),
     );
   }
