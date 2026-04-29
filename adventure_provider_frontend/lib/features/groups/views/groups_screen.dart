@@ -189,28 +189,28 @@ class _GroupsScreenState extends State<GroupsScreen> {
               ),
             ),
 
-            // ── Tabs ──
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Obx(() {
-                return Row(
-                  children: [
-                    _TabButton(
-                      label: 'My Groups',
-                      isActive: _activeTab.value == 0,
-                      onTap: () => _activeTab.value = 0,
-                    ),
-                    const SizedBox(width: 12),
-                    _TabButton(
-                      label: 'Discover',
-                      isActive: _activeTab.value == 1,
-                      onTap: () => _activeTab.value = 1,
-                    ),
-                  ],
-                );
-              }),
-            ),
+            // // ── Tabs ──
+            // Padding(
+            //   padding:
+            //       const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            //   child: Obx(() {
+            //     return Row(
+            //       children: [
+            //         _TabButton(
+            //           label: 'My Groups',
+            //           isActive: _activeTab.value == 0,
+            //           onTap: () => _activeTab.value = 0,
+            //         ),
+            //         const SizedBox(width: 12),
+            //         _TabButton(
+            //           label: 'Discover',
+            //           isActive: _activeTab.value == 1,
+            //           onTap: () => _activeTab.value = 1,
+            //         ),
+            //       ],
+            //     );
+            //   }),
+            // ),
 
             // ── Body ──
             Expanded(

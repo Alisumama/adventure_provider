@@ -4,8 +4,9 @@ import 'package:get/get.dart';
 class NavigationController extends GetxController {
   static const int tabHome = 0;
   static const int tabTrack = 1;
-  static const int tabCommunity = 2;
-  static const int tabProfile = 3;
+  static const int tabGroups = 2;
+  static const int tabCommunity = 3;
+  static const int tabProfile = 4;
 
   final RxInt currentIndex = 0.obs;
 

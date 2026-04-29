@@ -129,10 +129,14 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen>
                       'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                   userAgentPackageName: 'com.adventureproviders.app',
                 ),
+                // Selected track route overlay
+                _buildTrackRoutePolyline(),
                 // Historical path line for each member in this live session
                 _buildMemberPathPolylines(),
                 // Member markers
                 _buildMemberMarkers(),
+                // Track start/end markers
+                _buildTrackEndpointMarkers(),
                 // Current user marker
                 _buildCurrentUserMarker(),
               ],
@@ -178,6 +182,84 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen>
     }
     if (lines.isEmpty) return const SizedBox.shrink();
     return PolylineLayer(polylines: lines);
+  }
+
+  Widget _buildTrackRoutePolyline() {
+    final t = _gc.selectedTrackForSession.value;
+    if (t == null || t.geoPath.isEmpty) return const SizedBox.shrink();
+    final points = t.geoPath
+        .map((p) => ll.LatLng(p.latitude, p.longitude))
+        .toList();
+    return PolylineLayer(
+      polylines: [
+        Polyline(
+          points: points,
+          color: const Color(0xFF1B5E20),
+          strokeWidth: 6,
+          pattern: const StrokePattern.dotted(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTrackEndpointMarkers() {
+    final t = _gc.selectedTrackForSession.value;
+    if (t == null) return const SizedBox.shrink();
+    final markers = <Marker>[];
+    final start = t.startPoint ?? (t.geoPath.isNotEmpty ? t.geoPath.first : null);
+    final end = t.endPoint ?? (t.geoPath.length > 1 ? t.geoPath.last : null);
+    if (start != null) {
+      markers.add(
+        Marker(
+          point: ll.LatLng(start.latitude, start.longitude),
+          width: 60,
+          height: 50,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.flag, color: Colors.green, size: 24),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text('Start',
+                    style: GoogleFonts.spaceMono(
+                        fontSize: 8, color: Colors.white)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    if (end != null) {
+      markers.add(
+        Marker(
+          point: ll.LatLng(end.latitude, end.longitude),
+          width: 60,
+          height: 50,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.flag, color: Colors.red, size: 24),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text('End',
+                    style: GoogleFonts.spaceMono(
+                        fontSize: 8, color: Colors.white)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    if (markers.isEmpty) return const SizedBox.shrink();
+    return MarkerLayer(markers: markers);
   }
 
   Widget _buildMemberMarkers() {
@@ -273,28 +355,50 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen>
             .where((m) => m.isOnline)
             .length;
 
-        return Row(
+        final trackName = _gc.selectedTrackForSession.value?.title;
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            GestureDetector(
-              onTap: () => Get.back(),
-              child:
-                  const Icon(Icons.arrow_back, color: Colors.white, size: 24),
+            Row(
+              children: [
+                GestureDetector(
+                  onTap: () => Get.back(),
+                  child: const Icon(Icons.arrow_back,
+                      color: Colors.white, size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    group?.name ?? 'Group',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.bebasNeue(
+                        fontSize: 18, color: Colors.white, letterSpacing: 1),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  '$onlineCount online',
+                  style: GoogleFonts.spaceMono(
+                      fontSize: 11, color: AppColors.primaryLight),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                group?.name ?? 'Group',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.bebasNeue(
-                    fontSize: 18, color: Colors.white, letterSpacing: 1),
+            if (trackName != null && trackName.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.route, size: 12, color: Colors.orangeAccent),
+                  const SizedBox(width: 4),
+                  Text(
+                    trackName,
+                    style: GoogleFonts.spaceMono(
+                        fontSize: 10, color: Colors.orangeAccent),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              '$onlineCount online',
-              style: GoogleFonts.spaceMono(
-                  fontSize: 11, color: AppColors.primaryLight),
-            ),
+            ],
           ],
         );
       }),

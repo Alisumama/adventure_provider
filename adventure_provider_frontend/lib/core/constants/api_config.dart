@@ -1,20 +1,63 @@
 import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform, kIsWeb;
+import 'package:hive/hive.dart';
 
 /// Base URL for the backend API.
 ///
 /// - **Android emulator**: `10.0.2.2` (emulator's alias for host machine's localhost).
 /// - **iOS simulator**: `127.0.0.1`.
-/// - **Real device**: set [baseUrlOverride] to your PC's LAN IP (e.g. `http://192.168.1.5:9090/api`)
+/// - **Real device**: call [setIpAddress] from the login settings sheet
 ///   so the phone can reach the backend on your computer.
 class ApiConfig {
   ApiConfig._();
 
-  /// Override when testing on a **real device**. Set to your PC's IP, e.g. `http://192.168.1.5:9090/api`.
-  /// Leave null for emulator/simulator.
-  static const String? baseUrlOverride = 'http://192.168.1.101:9090/api';
+  static const String _boxName = 'api_config';
+  static const String _ipKey = 'server_ip';
+  static const String _ipHistoryKey = 'ip_history';
+
+  /// Runtime override set via [setIpAddress]. Loaded from Hive on [init].
+  static String? _runtimeIp;
 
   static const int _port = 9090;
   static const String _path = '/api';
+
+  /// Call once at app startup (before bindings) to restore the saved IP.
+  static Future<void> init() async {
+    final box = await Hive.openBox<dynamic>(_boxName);
+    final saved = box.get(_ipKey) as String?;
+    if (saved != null && saved.trim().isNotEmpty) {
+      _runtimeIp = saved.trim();
+    }
+  }
+
+  /// Persist and apply a new server IP at runtime.
+  static Future<void> setIpAddress(String ip) async {
+    final trimmed = ip.trim();
+    _runtimeIp = trimmed.isEmpty ? null : trimmed;
+    final box = Hive.box<dynamic>(_boxName);
+    await box.put(_ipKey, trimmed);
+    // Save to history
+    if (trimmed.isNotEmpty) {
+      final history = getIpHistory();
+      history.remove(trimmed);
+      history.insert(0, trimmed);
+      // Keep max 10 entries
+      if (history.length > 10) history.removeLast();
+      await box.put(_ipHistoryKey, history);
+    }
+  }
+
+  /// Returns the list of previously used IP addresses.
+  static List<String> getIpHistory() {
+    final box = Hive.box<dynamic>(_boxName);
+    final raw = box.get(_ipHistoryKey);
+    if (raw is List) {
+      return raw.map((e) => e.toString()).toList();
+    }
+    return [];
+  }
+
+  /// Current IP (if set).
+  static String? get currentIp => _runtimeIp;
 
   /// Loopback to the machine running Metro/backend (emulator / simulator only).
   static String get _loopbackHost {
@@ -26,19 +69,16 @@ class ApiConfig {
   }
 
   static String get baseUrl {
-    if (baseUrlOverride != null && baseUrlOverride!.isNotEmpty) {
-      final url = baseUrlOverride!;
-      return url.endsWith('/') ? url : url;
+    if (_runtimeIp != null && _runtimeIp!.isNotEmpty) {
+      return 'http://$_runtimeIp:$_port$_path';
     }
     return 'http://$_loopbackHost:$_port$_path';
   }
 
   /// Server origin for static files (no `/api`). Uploads are served at `[origin]/uploads/...`.
   static String get serverOrigin {
-    if (baseUrlOverride != null && baseUrlOverride!.isNotEmpty) {
-      final raw = baseUrlOverride!.trim();
-      final uri = Uri.parse(raw.endsWith('/') ? raw.substring(0, raw.length - 1) : raw);
-      return uri.origin;
+    if (_runtimeIp != null && _runtimeIp!.isNotEmpty) {
+      return 'http://$_runtimeIp:$_port';
     }
     return 'http://$_loopbackHost:$_port';
   }

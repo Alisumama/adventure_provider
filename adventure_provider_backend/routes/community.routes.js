@@ -14,6 +14,10 @@ router.delete('/posts/:postId', protect, communityController.deletePost);
 router.get('/:communityId/posts', protect, communityController.getCommunityPosts);
 router.post('/:communityId/posts', protect, communityController.createPost);
 
+router.get('/:communityId/announcements', protect, communityController.getAnnouncements);
+router.get('/:communityId/events', protect, communityController.getCommunityEvents);
+router.get('/:communityId/rules', protect, communityController.getCommunityRules);
+
 // Specific /:communityId/... routes before generic `/:communityId` (GET/PUT/DELETE)
 router.get('/:communityId/members', protect, communityController.getCommunityMembers);
 router.delete('/:communityId/members/:userId', protect, communityController.removeMember);

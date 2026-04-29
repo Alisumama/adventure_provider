@@ -799,6 +799,27 @@ async function deleteCommunity(req, res) {
   }
 }
 
+/**
+ * GET /api/community/:communityId/announcements — stub (not yet implemented).
+ */
+async function getAnnouncements(req, res) {
+  return res.status(200).json({ announcements: [], total: 0 });
+}
+
+/**
+ * GET /api/community/:communityId/events — stub (not yet implemented).
+ */
+async function getCommunityEvents(req, res) {
+  return res.status(200).json({ events: [], total: 0 });
+}
+
+/**
+ * GET /api/community/:communityId/rules — stub (not yet implemented).
+ */
+async function getCommunityRules(req, res) {
+  return res.status(200).json({ rules: [] });
+}
+
 module.exports = {
   createCommunity,
   getAllCommunities,
@@ -817,4 +838,7 @@ module.exports = {
   demoteModerator,
   transferAdmin,
   deleteCommunity,
+  getAnnouncements,
+  getCommunityEvents,
+  getCommunityRules,
 };

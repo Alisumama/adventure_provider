@@ -7,6 +7,8 @@ import 'package:latlong2/latlong.dart' as ll;
 
 import '../../../core/services/socket_service.dart';
 import '../../auth/controllers/auth_controller.dart';
+import '../../track/controllers/track_controller.dart';
+import '../../track/data/models/track_model.dart';
 import '../data/models/group_model.dart';
 import '../data/models/live_session_model.dart';
 import '../data/repositories/group_repository.dart';
@@ -29,7 +31,22 @@ class GroupController extends GetxController {
   final RxString liveSessionId = ''.obs;
   final Rxn<ll.LatLng> currentPosition = Rxn<ll.LatLng>();
 
+  /// Track selected for the current group tracking session (route displayed on map).
+  final Rxn<TrackModel> selectedTrackForSession = Rxn<TrackModel>();
+
   StreamSubscription<Position>? _gpsSub;
+
+  /// Fetches the track by ID and sets [selectedTrackForSession] so joiners see the route.
+  Future<void> _loadSessionTrack(String? trackId) async {
+    if (trackId == null || trackId.isEmpty) return;
+    try {
+      final tc = Get.find<TrackController>();
+      await tc.fetchTrackById(trackId);
+      selectedTrackForSession.value = tc.selectedTrack.value;
+    } catch (_) {
+      // Non-critical — session works without the track overlay.
+    }
+  }
 
   String _cleanError(Object e) =>
       e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
@@ -126,7 +143,10 @@ class GroupController extends GetxController {
         return;
       }
 
-      final data = await _repository.startGroupTracking(groupId);
+      final data = await _repository.startGroupTracking(
+        groupId,
+        trackId: selectedTrackForSession.value?.id,
+      );
       final sessionId = data['liveSessionId']?.toString() ?? '';
       liveSessionId.value = sessionId;
 
@@ -139,8 +159,10 @@ class GroupController extends GetxController {
       }
 
       final socket = Get.find<SocketService>();
-      socket.joinGroupRoom(groupId, sessionId);
+      final connected = await socket.ensureConnected();
+      debugPrint('[GroupController] socket connected=$connected before joinGroupRoom');
       _bindGroupSocketListeners(socket);
+      socket.joinGroupRoom(groupId, sessionId);
       _startGpsStream(groupId, sessionId, socket);
 
       isTracking.value = true;
@@ -189,11 +211,14 @@ class GroupController extends GetxController {
       final selected = groupLiveSessions.firstWhereOrNull((s) => s.id == targetSessionId);
       if (selected != null) {
         liveSession.value = selected;
+        await _loadSessionTrack(selected.trackId);
       }
 
       final socket = Get.find<SocketService>();
-      socket.joinGroupRoom(groupId, targetSessionId);
+      final connected = await socket.ensureConnected();
+      debugPrint('[GroupController] socket connected=$connected before joinExistingLiveSession');
       _bindGroupSocketListeners(socket);
+      socket.joinGroupRoom(groupId, targetSessionId);
       _startGpsStream(groupId, targetSessionId, socket);
 
       isTracking.value = true;
@@ -208,6 +233,7 @@ class GroupController extends GetxController {
     socket.offAllGroupListeners();
 
     socket.onMemberLocation((data) {
+      debugPrint('[GroupController] member_location received: $data');
       final incomingSessionId = data['liveSessionId']?.toString();
       final currentSessionId = liveSessionId.value;
       if (incomingSessionId != null &&
@@ -241,6 +267,7 @@ class GroupController extends GetxController {
     });
 
     socket.onMemberJoined((data) {
+      debugPrint('[GroupController] member_joined received: $data');
       final userId = data['userId']?.toString() ?? '';
       final name = data['name']?.toString() ?? '';
       if (userId.isNotEmpty) {
@@ -391,6 +418,7 @@ class GroupController extends GetxController {
       liveSession.value = null;
       liveSessionId.value = '';
       isTracking.value = false;
+      selectedTrackForSession.value = null;
     } catch (e) {
       Get.snackbar('Error', _cleanError(e),
           snackPosition: SnackPosition.BOTTOM);

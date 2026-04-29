@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'core/bindings/initial_binding.dart';
+import 'core/constants/api_config.dart';
 import 'core/constants/app_routes.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/views/forgot_password_screen.dart';
@@ -21,6 +22,7 @@ import 'features/community/views/image_gallery_screen.dart';
 import 'features/community/views/post_comments_screen.dart';
 import 'features/groups/views/group_detail_screen.dart';
 import 'features/groups/views/live_tracking_screen.dart';
+import 'features/home/views/explore_map_screen.dart';
 import 'features/profile/views/change_password_screen.dart';
 import 'features/profile/views/profile_screen.dart';
 import 'features/shell/main_shell_screen.dart';
@@ -44,6 +46,7 @@ Future<void> main() async {
     await Hive.openBox('track_sessions');
     await Hive.openBox('follow_points');
     await Hive.openBox('follow_sessions');
+    await ApiConfig.init();
   } catch (e, stackTrace) {
     debugPrint('Hive initialization failed: $e');
     debugPrint('$stackTrace');
@@ -228,6 +231,11 @@ class MyApp extends StatelessWidget {
         GetPage(
           name: AppRoutes.liveGroupTracking,
           page: () => const LiveTrackingScreen(),
+          binding: AppRoutes.bindingHome(),
+        ),
+        GetPage(
+          name: AppRoutes.exploreMap,
+          page: () => const ExploreMapScreen(),
           binding: AppRoutes.bindingHome(),
         ),
       ],

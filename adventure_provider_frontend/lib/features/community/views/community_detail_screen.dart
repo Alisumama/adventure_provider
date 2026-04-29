@@ -1621,16 +1621,7 @@ class _PostComposer extends StatelessWidget {
   }
 
   void _showCreatePostBottomSheet(BuildContext context) {
-    Get.bottomSheet<void>(
-      CreatePostBottomSheet(communityId: communityId),
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      isDismissible: true,
-      enableDrag: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-    );
+    Get.to<void>(() => CreatePostScreen(communityId: communityId));
   }
 }
 
