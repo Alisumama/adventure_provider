@@ -21,41 +21,69 @@ class HomeCommunitiesSection extends StatelessWidget {
   final VoidCallback? onSeeAll;
   final void Function(CommunityModel community)? onCommunityTap;
 
+  static const _textPrimary = Color(0xFF1A1A2E);
+  static const _primary = Color(0xFF2D6A4F);
+
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'COMMUNITIES',
-              style: GoogleFonts.bebasNeue(
-                fontSize: 17,
-                fontWeight: FontWeight.w400,
-                letterSpacing: 0.5,
-                color: AppColors.textPrimary,
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'COMMUNITIES',
+                  style: GoogleFonts.bebasNeue(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w400,
+                    letterSpacing: 1.5,
+                    color: _textPrimary,
+                    height: 1,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Container(
+                  width: 54,
+                  height: 3,
+                  decoration: BoxDecoration(
+                    color: _primary,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ],
             ),
+            const Spacer(),
             GestureDetector(
               onTap: onSeeAll,
-              child: Text(
-                'See All',
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: _primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  child: Text(
+                    'See All',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: _primary,
+                    ),
+                  ),
                 ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 140,
-          child: _buildContent(),
-        ),
+        const SizedBox(height: 14),
+        SizedBox(height: 158, child: _buildContent()),
       ],
     );
   }
@@ -67,7 +95,9 @@ class HomeCommunitiesSection extends StatelessWidget {
           width: 24,
           height: 24,
           child: CircularProgressIndicator(
-              strokeWidth: 2, color: AppColors.primaryLight),
+            strokeWidth: 2,
+            color: AppColors.primaryLight,
+          ),
         ),
       );
     }
@@ -76,8 +106,10 @@ class HomeCommunitiesSection extends StatelessWidget {
       return Center(
         child: Text(
           'No communities yet',
-          style:
-              GoogleFonts.poppins(fontSize: 12, color: AppColors.textSecondary),
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            color: AppColors.textSecondary,
+          ),
         ),
       );
     }
@@ -87,7 +119,7 @@ class HomeCommunitiesSection extends StatelessWidget {
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.only(right: 4),
       itemCount: communities.length,
-      separatorBuilder: (_, __) => const SizedBox(width: 12),
+      separatorBuilder: (_, __) => const SizedBox(width: 14),
       itemBuilder: (_, index) {
         final c = communities[index];
         return _CommunityCard(
@@ -105,71 +137,95 @@ class _CommunityCard extends StatelessWidget {
   final CommunityModel community;
   final VoidCallback? onTap;
 
+  static const _textPrimary = Color(0xFF1A1A2E);
+
   @override
   Widget build(BuildContext context) {
-    final imageUrl = ApiConfig.resolveMediaUrl(community.image) ??
+    final imageUrl =
+        ApiConfig.resolveMediaUrl(community.image) ??
         ApiConfig.resolveMediaUrl(community.coverImage);
-    final letter =
-        community.name.isNotEmpty ? community.name[0].toUpperCase() : '?';
+    final letter = community.name.isNotEmpty
+        ? community.name[0].toUpperCase()
+        : '?';
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          width: 150,
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.homeHeaderBorder, width: 1),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Cover area
-              SizedBox(
-                height: 70,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    if (imageUrl != null && imageUrl.isNotEmpty)
-                      CachedNetworkImage(
-                        imageUrl: imageUrl,
-                        fit: BoxFit.cover,
-                        errorWidget: (_, __, ___) =>
-                            _FallbackCover(letter: letter),
-                      )
-                    else
-                      _FallbackCover(letter: letter),
-                    // Member badge
-                    if (community.isMember)
-                      Positioned(
-                        top: 6,
-                        right: 6,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryLight.withValues(alpha: 0.9),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            'Joined',
-                            style: GoogleFonts.spaceMono(
-                                fontSize: 8,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 158,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              height: 78,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (imageUrl != null && imageUrl.isNotEmpty)
+                    CachedNetworkImage(
+                      imageUrl: imageUrl,
+                      fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) =>
+                          _FallbackCover(letter: letter),
+                    )
+                  else
+                    _FallbackCover(letter: letter),
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.05),
+                            Colors.black.withValues(alpha: 0.35),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (community.isMember)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(
+                            0xFF52B788,
+                          ).withValues(alpha: 0.95),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          'Joined',
+                          style: GoogleFonts.spaceMono(
+                            fontSize: 8,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
                           ),
                         ),
                       ),
-                  ],
-                ),
+                    ),
+                ],
               ),
-              // Info
-              Padding(
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -178,9 +234,9 @@ class _CommunityCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.poppins(
-                        fontSize: 12,
+                        fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                        color: _textPrimary,
                         height: 1.2,
                       ),
                     ),
@@ -190,15 +246,15 @@ class _CommunityCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.poppins(
-                        fontSize: 9,
-                        color: AppColors.textSecondary,
+                        fontSize: 11,
+                        color: const Color(0xFF6B7280),
                       ),
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -215,7 +271,7 @@ class _FallbackCover extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF2A9D8F), Color(0xFF264653)],
+          colors: [Color(0xFF1B4332), Color(0xFF2D6A4F)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -224,8 +280,8 @@ class _FallbackCover extends StatelessWidget {
       child: Text(
         letter,
         style: GoogleFonts.bebasNeue(
-          fontSize: 28,
-          color: Colors.white.withValues(alpha: 0.4),
+          fontSize: 32,
+          color: Colors.white.withValues(alpha: 0.45),
         ),
       ),
     );

@@ -7,92 +7,169 @@ import '../../../core/theme/app_colors.dart';
 
 /// Quick map preview block: header row + faux map with roads and GPS marker.
 class HomeQuickMapSection extends StatelessWidget {
-  const HomeQuickMapSection({super.key, this.onOpenFullMap, this.onOpenMapPreview});
+  const HomeQuickMapSection({
+    super.key,
+    this.onOpenFullMap,
+    this.onOpenMapPreview,
+  });
 
   final VoidCallback? onOpenFullMap;
   final VoidCallback? onOpenMapPreview;
 
+  static const _textPrimary = Color(0xFF1A1A2E);
+  static const _primary = Color(0xFF2D6A4F);
+  static const _primaryLight = Color(0xFF52B788);
+  static const _primaryDark = Color(0xFF1B4332);
+
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              '📍 Quick Map',
-              style: GoogleFonts.bebasNeue(
-                fontSize: 17,
-                fontWeight: FontWeight.w400,
-                letterSpacing: 0.5,
-                color: AppColors.textPrimary,
+    return Padding(
+      padding: const EdgeInsets.only(top: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'QUICK MAP',
+                    style: GoogleFonts.bebasNeue(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w400,
+                      letterSpacing: 1.5,
+                      color: _textPrimary,
+                      height: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Container(
+                    width: 40,
+                    height: 3,
+                    decoration: BoxDecoration(
+                      color: _primary,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ],
               ),
-            ),
-            GestureDetector(
-              onTap: onOpenFullMap,
-              child: Text(
-                'Open Full Map →',
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
+              const Spacer(),
+              GestureDetector(
+                onTap: onOpenFullMap,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Full Map',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: _primary,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.arrow_forward_ios,
+                      size: 11,
+                      color: _primary,
+                    ),
+                  ],
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            height: 170,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                ),
+              ],
             ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: SizedBox(
-            height: 140,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                const ColoredBox(color: AppColors.mapPreviewBackground),
-                const CustomPaint(
-                  painter: _DiagonalStripesPainter(),
-                ),
-                const CustomPaint(
-                  painter: _MapRoadsPainter(),
-                ),
-                const Center(
-                  child: _PulsingLocationMarker(),
-                ),
-                Positioned(
-                  left: 10,
-                  top: 10,
-                  child: _GpsActiveBadge(),
-                ),
-                Positioned(
-                  right: 10,
-                  bottom: 10,
-                  child: Material(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(999),
-                    child: InkWell(
-                      onTap: onOpenMapPreview ?? onOpenFullMap,
-                      borderRadius: BorderRadius.circular(999),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                        child: Text(
-                          '🗺 Open Map',
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.surface,
-                          ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  const ColoredBox(color: AppColors.mapPreviewBackground),
+                  const CustomPaint(painter: _DiagonalStripesPainter()),
+                  const CustomPaint(painter: _MapRoadsPainter()),
+                  const Center(child: _PulsingLocationMarker()),
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      height: 50,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.25),
+                            Colors.transparent,
+                          ],
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                  const Positioned(top: 12, left: 12, child: _GpsActiveBadge()),
+                  Positioned(
+                    bottom: 12,
+                    right: 12,
+                    child: GestureDetector(
+                      onTap: onOpenMapPreview ?? onOpenFullMap,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: _primaryDark,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: _primaryDark.withValues(alpha: 0.5),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.map_outlined,
+                              color: Colors.white,
+                              size: 15,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Open Map',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -213,7 +290,9 @@ class _PulsingLocationMarkerState extends State<_PulsingLocationMarker>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: AppColors.primaryLight.withValues(alpha: ringOpacity),
+                      color: AppColors.primaryLight.withValues(
+                        alpha: ringOpacity,
+                      ),
                       width: 2,
                     ),
                   ),
@@ -248,18 +327,20 @@ class _PulsingLocationMarkerState extends State<_PulsingLocationMarker>
 // ─── GPS badge ────────────────────────────────────────────────────────────────
 
 class _GpsActiveBadge extends StatefulWidget {
+  const _GpsActiveBadge();
+
   @override
   State<_GpsActiveBadge> createState() => _GpsActiveBadgeState();
 }
 
 class _GpsActiveBadgeState extends State<_GpsActiveBadge>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _dot;
+  late final AnimationController _pulse;
 
   @override
   void initState() {
     super.initState();
-    _dot = AnimationController(
+    _pulse = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
     )..repeat(reverse: true);
@@ -267,37 +348,37 @@ class _GpsActiveBadgeState extends State<_GpsActiveBadge>
 
   @override
   void dispose() {
-    _dot.dispose();
+    _pulse.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    const primaryLight = Color(0xFF52B788);
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(999),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primaryDark.withValues(alpha: 0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: const Color(0xFF1A1A2E).withValues(alpha: 0.75),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: primaryLight.withValues(alpha: 0.5),
+          width: 1,
+        ),
       ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          FadeTransition(
-            opacity: Tween<double>(begin: 0.35, end: 1).animate(
-              CurvedAnimation(parent: _dot, curve: Curves.easeInOut),
-            ),
+          ScaleTransition(
+            scale: Tween<double>(
+              begin: 0.85,
+              end: 1.12,
+            ).animate(CurvedAnimation(parent: _pulse, curve: Curves.easeInOut)),
             child: Container(
-              width: 5,
-              height: 5,
+              width: 7,
+              height: 7,
               decoration: const BoxDecoration(
-                color: AppColors.primaryLight,
+                color: primaryLight,
                 shape: BoxShape.circle,
               ),
             ),
@@ -305,11 +386,10 @@ class _GpsActiveBadgeState extends State<_GpsActiveBadge>
           const SizedBox(width: 6),
           Text(
             'GPS Active',
-            style: GoogleFonts.spaceMono(
-              fontSize: 10,
+            style: GoogleFonts.poppins(
+              fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-              letterSpacing: 0.2,
+              color: Colors.white,
             ),
           ),
         ],

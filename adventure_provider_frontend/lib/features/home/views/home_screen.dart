@@ -5,9 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/constants/api_config.dart';
 import '../../../core/constants/app_routes.dart';
-import '../../../core/constants/shell_layout.dart';
 import '../../../core/controllers/navigation_controller.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../community/controllers/community_controller.dart';
 import '../../groups/controllers/group_controller.dart';
@@ -42,20 +40,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  static String initialsFromName(String name) {
-    final trimmed = name.trim();
-    if (trimmed.isEmpty) return '?';
-    final parts = trimmed.split(RegExp(r'\s+'));
-    if (parts.length == 1) {
-      final s = parts[0];
-      if (s.length >= 2) return s.substring(0, 2).toUpperCase();
-      return s[0].toUpperCase();
-    }
-    final a = parts[0].isNotEmpty ? parts[0][0] : '';
-    final b = parts[1].isNotEmpty ? parts[1][0] : '';
-    return ('$a$b').toUpperCase();
-  }
-
   String _resolveDisplayName() {
     try {
       final p = Get.find<ProfileController>().profile.value;
@@ -78,11 +62,11 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  String _greeting() {
+  String _timeOfDayWord() {
     final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good morning,';
-    if (hour < 17) return 'Good afternoon,';
-    return 'Good evening,';
+    if (hour < 12) return 'morning';
+    if (hour < 17) return 'afternoon';
+    return 'evening';
   }
 
   ActiveSessionData? _buildActiveSession() {
@@ -111,30 +95,35 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const headerBodyHeight = 68.0;
+    const scaffoldBg = Color(0xFFF0EDE8);
 
-    return Material(
-      color: AppColors.background,
-      child: SafeArea(
+    return Scaffold(
+      backgroundColor: scaffoldBg,
+      body: SafeArea(
+        top: true,
+        bottom: false,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SizedBox(
-              height: headerBodyHeight,
-              child: Obx(() {
-                final displayName = _resolveDisplayName();
-                final initials = initialsFromName(displayName);
-                final imageUrl = _resolveProfileImageUrl();
-                return _HomeHeaderBar(
-                  displayName: displayName,
-                  initials: initials,
-                  imageUrl: imageUrl,
-                  greeting: _greeting(),
-                  onAvatarTap: () =>
-                      _navigateToTab(NavigationController.tabProfile),
-                );
-              }),
-            ),
+            Obx(() {
+              final displayName = _resolveDisplayName();
+              final imageUrl = _resolveProfileImageUrl();
+              return _AdvancedHomeHeader(
+                displayName: displayName,
+                imageUrl: imageUrl,
+                timeOfDayWord: _timeOfDayWord(),
+                onNotificationsTap: () {
+                  Get.snackbar(
+                    'Notifications',
+                    'Notifications coming soon.',
+                    snackPosition: SnackPosition.BOTTOM,
+                    duration: const Duration(seconds: 2),
+                  );
+                },
+                onAvatarTap: () =>
+                    _navigateToTab(NavigationController.tabProfile),
+              );
+            }),
             Expanded(
               child: Obx(() {
                 final activeSession = _buildActiveSession();
@@ -142,64 +131,73 @@ class _HomeScreenState extends State<HomeScreen> {
                 final groups = _gc.myGroups;
                 final communities = _cc.communities;
 
-                return ListView(
-                  primary: false,
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  children: [
-                    HomeSessionHeroCard(
-                      activeSession: activeSession,
-                      onStartAdventure: () =>
-                          Get.toNamed(AppRoutes.recordTrack),
-                      onViewMap: () {
-                        if (_tc.liveTrackId.value.isNotEmpty) {
-                          Get.toNamed(AppRoutes.liveMapRecording);
-                        }
-                      },
-                      onEndSession: () => _tc.stopRecording(),
+                return SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.only(top: 20),
+                          child: HomeSessionHeroCard(
+                            activeSession: activeSession,
+                            onStartAdventure: () =>
+                                Get.toNamed(AppRoutes.recordTrack),
+                            onViewMap: () {
+                              if (_tc.liveTrackId.value.isNotEmpty) {
+                                Get.toNamed(AppRoutes.liveMapRecording);
+                              }
+                            },
+                            onEndSession: () => _tc.stopRecording(),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        HomeQuickMapSection(
+                          onOpenFullMap: () =>
+                              Get.toNamed(AppRoutes.exploreMap),
+                          onOpenMapPreview: () =>
+                              Get.toNamed(AppRoutes.exploreMap),
+                        ),
+                        const SizedBox(height: 28),
+                        HomeNearbyRoutesSection(
+                          tracks: tracks,
+                          isLoading: _tc.isLoading.value,
+                          onSeeAll: () =>
+                              _navigateToTab(NavigationController.tabTrack),
+                          onRouteTap: (track) {
+                            if (track.id != null) {
+                              Get.toNamed(
+                                  AppRoutes.trackDetailNamed(track.id!));
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 28),
+                        HomeMyGroupsSection(
+                          groups: groups,
+                          onSeeAll: () =>
+                              _navigateToTab(NavigationController.tabGroups),
+                          onGroupTap: (group) {
+                            Get.toNamed(
+                                AppRoutes.groupDetailNamed(group.id));
+                          },
+                        ),
+                        const SizedBox(height: 28),
+                        HomeCommunitiesSection(
+                          communities: communities,
+                          isLoading: _cc.isLoading.value,
+                          onSeeAll: () =>
+                              _navigateToTab(NavigationController.tabCommunity),
+                          onCommunityTap: (community) {
+                            Get.toNamed(AppRoutes.communityDetailNamed(
+                                community.id));
+                          },
+                        ),
+                        const SizedBox(height: 24),
+                        const SizedBox(height: 110),
+                      ],
                     ),
-                    const SizedBox(height: 20),
-                    HomeQuickMapSection(
-                      onOpenFullMap: () =>
-                          Get.toNamed(AppRoutes.exploreMap),
-                      onOpenMapPreview: () =>
-                          Get.toNamed(AppRoutes.exploreMap),
-                    ),
-                    const SizedBox(height: 20),
-                    HomeNearbyRoutesSection(
-                      tracks: tracks,
-                      isLoading: _tc.isLoading.value,
-                      onSeeAll: () =>
-                          _navigateToTab(NavigationController.tabTrack),
-                      onRouteTap: (track) {
-                        if (track.id != null) {
-                          Get.toNamed(AppRoutes.trackDetailNamed(track.id!));
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    HomeMyGroupsSection(
-                      groups: groups,
-                      onSeeAll: () =>
-                          _navigateToTab(NavigationController.tabGroups),
-                      onGroupTap: (group) {
-                        Get.toNamed(AppRoutes.groupDetailNamed(group.id));
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    HomeCommunitiesSection(
-                      communities: communities,
-                      isLoading: _cc.isLoading.value,
-                      onSeeAll: () =>
-                          _navigateToTab(NavigationController.tabCommunity),
-                      onCommunityTap: (community) {
-                        Get.toNamed(
-                            AppRoutes.communityDetailNamed(community.id));
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    const SizedBox(height: kSosFabScrollBottomInset),
-                  ],
+                  ),
                 );
               }),
             ),
@@ -210,130 +208,357 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _HomeHeaderBar extends StatelessWidget {
-  const _HomeHeaderBar({
-    required this.displayName,
-    required this.initials,
-    required this.imageUrl,
-    required this.greeting,
-    this.onAvatarTap,
-  });
+class _LiveGpsPulseDot extends StatefulWidget {
+  const _LiveGpsPulseDot({super.key});
 
-  final String displayName;
-  final String initials;
-  final String? imageUrl;
-  final String greeting;
-  final VoidCallback? onAvatarTap;
+  @override
+  State<_LiveGpsPulseDot> createState() => _LiveGpsPulseDotState();
+}
+
+class _LiveGpsPulseDotState extends State<_LiveGpsPulseDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(
-            bottom: BorderSide(color: AppColors.homeHeaderBorder, width: 1)),
+    return ScaleTransition(
+      scale: Tween<double>(begin: 0.6, end: 1.4).animate(
+        CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
       ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    greeting,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
-                        color: AppColors.homeGreetingGrey),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    displayName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.bebasNeue(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w400,
-                        letterSpacing: 1.5,
-                        color: AppColors.textPrimary,
-                        height: 1.1),
-                  ),
-                ],
-              ),
-            ),
-            GestureDetector(
-              onTap: onAvatarTap,
-              child: _HomeAvatarCircle(
-                  initials: initials, imageUrl: imageUrl),
-            ),
-          ],
+      child: Container(
+        width: 6,
+        height: 6,
+        decoration: const BoxDecoration(
+          color: Color(0xFF52B788),
+          shape: BoxShape.circle,
         ),
       ),
     );
   }
 }
 
-class _HomeAvatarCircle extends StatelessWidget {
-  const _HomeAvatarCircle({required this.initials, required this.imageUrl});
+class _AdvancedHomeHeader extends StatelessWidget {
+  const _AdvancedHomeHeader({
+    required this.displayName,
+    required this.imageUrl,
+    required this.timeOfDayWord,
+    required this.onNotificationsTap,
+    this.onAvatarTap,
+  });
 
-  final String initials;
+  final String displayName;
   final String? imageUrl;
+  final String timeOfDayWord;
+  final VoidCallback onNotificationsTap;
+  final VoidCallback? onAvatarTap;
 
-  @override
-  Widget build(BuildContext context) {
-    final url = imageUrl;
-    return Container(
-      width: 38,
-      height: 38,
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.primaryLight, AppColors.primary]),
-      ),
-      alignment: Alignment.center,
-      child: ClipOval(
-        child: (url != null && url.trim().isNotEmpty)
-            ? CachedNetworkImage(
-                imageUrl: url,
-                width: 38,
-                height: 38,
-                fit: BoxFit.cover,
-                placeholder: (_, __) => _InitialsText(initials: initials),
-                errorWidget: (_, __, ___) =>
-                    _InitialsText(initials: initials),
-              )
-            : _InitialsText(initials: initials),
-      ),
-    );
+  static const _forestDeep = Color(0xFF0D2B1E);
+  static const _primaryDark = Color(0xFF1B4332);
+  static const _primary = Color(0xFF2D6A4F);
+  static const _accent = Color(0xFF52B788);
+
+  String get _avatarLetter {
+    final t = displayName.trim();
+    if (t.isEmpty) return '?';
+    return t[0].toUpperCase();
   }
-}
-
-class _InitialsText extends StatelessWidget {
-  const _InitialsText({required this.initials});
-
-  final String initials;
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Text(
-        initials,
-        style: GoogleFonts.bebasNeue(
-            fontSize: 16,
-            fontWeight: FontWeight.w400,
-            letterSpacing: 0.5,
-            color: AppColors.surface,
-            height: 1),
-      ),
+    final topPad = MediaQuery.paddingOf(context).top + 12;
+    final url = imageUrl?.trim();
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          top: -20,
+          right: -20,
+          child: IgnorePointer(
+            child: Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.03),
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: -30,
+          left: -30,
+          child: IgnorePointer(
+            child: Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.02),
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          top: 0,
+          right: 60,
+          child: IgnorePointer(
+            child: Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _accent.withValues(alpha: 0.06),
+              ),
+            ),
+          ),
+        ),
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.fromLTRB(20, topPad, 20, 20),
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF0D2B1E),
+                Color(0xFF1B4332),
+                Color(0xFF2D6A4F),
+              ],
+              stops: [0.0, 0.5, 1.0],
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const _LiveGpsPulseDot(),
+                            const SizedBox(width: 6),
+                            Text(
+                              'LIVE · GPS ACTIVE',
+                              style: GoogleFonts.poppins(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w600,
+                                color: _accent,
+                                letterSpacing: 2.0,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        RichText(
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          text: TextSpan(
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              color: Colors.white.withValues(alpha: 0.65),
+                              height: 1.25,
+                            ),
+                            children: [
+                              TextSpan(text: 'Good $timeOfDayWord,\n'),
+                              TextSpan(
+                                text: displayName.toUpperCase(),
+                                style: GoogleFonts.bebasNeue(
+                                  fontSize: 34,
+                                  fontWeight: FontWeight.w400,
+                                  color: Colors.white,
+                                  letterSpacing: 1.5,
+                                  height: 1.05,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      GestureDetector(
+                        onTap: onNotificationsTap,
+                        child: Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.15),
+                              width: 1,
+                            ),
+                          ),
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            alignment: Alignment.center,
+                            children: [
+                              const Icon(
+                                Icons.notifications_outlined,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                              Positioned(
+                                top: 9,
+                                right: 9,
+                                child: Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE07B39),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: _forestDeep,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      GestureDetector(
+                        onTap: onAvatarTap,
+                        child: SizedBox(
+                          width: 48,
+                          height: 48,
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            alignment: Alignment.center,
+                            children: [
+                              CircleAvatar(
+                                radius: 21,
+                                backgroundColor:
+                                    _accent.withValues(alpha: 0.3),
+                                backgroundImage: (url != null &&
+                                        url.isNotEmpty)
+                                    ? CachedNetworkImageProvider(url)
+                                    : null,
+                                child: (url == null || url.isEmpty)
+                                    ? Text(
+                                        _avatarLetter,
+                                        style: GoogleFonts.bebasNeue(
+                                          fontSize: 18,
+                                          color: Colors.white,
+                                          height: 1,
+                                        ),
+                                      )
+                                    : null,
+                              ),
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: Container(
+                                  width: 12,
+                                  height: 12,
+                                  decoration: BoxDecoration(
+                                    color: _accent,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: _primaryDark,
+                                      width: 2,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.07),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.1),
+                  ),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.wb_sunny_outlined,
+                            color: Color(0xFFF7B731),
+                            size: 16,
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              'Perfect weather for an adventure',
+                              style: GoogleFonts.poppins(
+                                fontSize: 11,
+                                color: Colors.white.withValues(alpha: 0.7),
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.terrain,
+                          color: _accent,
+                          size: 14,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Ready',
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: _accent,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

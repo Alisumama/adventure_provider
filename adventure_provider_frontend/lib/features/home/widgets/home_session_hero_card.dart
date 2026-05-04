@@ -6,7 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../models/active_session_data.dart';
 
-/// Hero card: active session (gradient) or empty dashed “start adventure” state.
+/// Hero card: active session (gradient) or empty “start adventure” state.
 class HomeSessionHeroCard extends StatelessWidget {
   const HomeSessionHeroCard({
     super.key,
@@ -49,117 +49,129 @@ class _ActiveSessionHeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: Stack(
-        clipBehavior: Clip.hardEdge,
-        children: [
-          Container(
-            width: double.infinity,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppColors.primaryDark,
-                  AppColors.primaryLight,
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1B4332).withValues(alpha: 0.28),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
+          clipBehavior: Clip.hardEdge,
+          children: [
+            Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [AppColors.primaryDark, AppColors.primaryLight],
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: SizedBox(
+                  height: 96,
+                  width: double.infinity,
+                  child: CustomPaint(painter: _TopoWatermarkPainter()),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _ActiveSessionPill(),
+                  const SizedBox(height: 14),
+                  Text(
+                    data.trailName,
+                    style: GoogleFonts.bebasNeue(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.surface,
+                      height: 1.05,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${data.activityLabel} · Started ${data.startedAgoLabel}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.surface.withValues(alpha: 0.7),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _MetricsPanel(data: data),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 42,
+                          child: FilledButton(
+                            onPressed: onViewMap,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.surface,
+                              foregroundColor: AppColors.primaryDark,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              textStyle: GoogleFonts.poppins(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            child: const Text('View on Map'),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: SizedBox(
+                          height: 42,
+                          child: OutlinedButton(
+                            onPressed: onEndSession,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.surface,
+                              side: const BorderSide(
+                                color: AppColors.surface,
+                                width: 1,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              textStyle: GoogleFonts.poppins(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            child: const Text('End Session'),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
-          ),
-          Positioned.fill(
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: SizedBox(
-                height: 96,
-                width: double.infinity,
-                child: CustomPaint(
-                  painter: _TopoWatermarkPainter(),
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _ActiveSessionPill(),
-                const SizedBox(height: 14),
-                Text(
-                  data.trailName,
-                  style: GoogleFonts.bebasNeue(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w400,
-                    color: AppColors.surface,
-                    height: 1.05,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '${data.activityLabel} · Started ${data.startedAgoLabel}',
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w400,
-                    color: AppColors.surface.withValues(alpha: 0.7),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _MetricsPanel(data: data),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: SizedBox(
-                        height: 42,
-                        child: FilledButton(
-                          onPressed: onViewMap,
-                          style: FilledButton.styleFrom(
-                            backgroundColor: AppColors.surface,
-                            foregroundColor: AppColors.primaryDark,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            textStyle: GoogleFonts.poppins(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          child: const Text('View on Map'),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: SizedBox(
-                        height: 42,
-                        child: OutlinedButton(
-                          onPressed: onEndSession,
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.surface,
-                            side: const BorderSide(
-                              color: AppColors.surface,
-                              width: 1,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            textStyle: GoogleFonts.poppins(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          child: const Text('End Session'),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -175,9 +187,7 @@ class _ActiveSessionPill extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: AppColors.surface.withValues(alpha: 0.25),
-        ),
+        border: Border.all(color: AppColors.surface.withValues(alpha: 0.25)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -228,9 +238,10 @@ class _BlinkingGreenDotState extends State<_BlinkingGreenDot>
   @override
   Widget build(BuildContext context) {
     return FadeTransition(
-      opacity: Tween<double>(begin: 0.35, end: 1).animate(
-        CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-      ),
+      opacity: Tween<double>(
+        begin: 0.35,
+        end: 1,
+      ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut)),
       child: Container(
         width: 6,
         height: 6,
@@ -377,150 +388,130 @@ class _EmptySessionHeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        width: double.infinity,
-        color: AppColors.surface,
-        child: CustomPaint(
-          foregroundPainter: _DashedRRectPainter(
-            borderRadius: 20,
-            color: AppColors.primary.withValues(alpha: 0.45),
-            strokeWidth: 1.5,
-            dashLength: 7,
-            gapLength: 5,
+    const textPrimary = Color(0xFF1A1A2E);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF2D6A4F).withValues(alpha: 0.12),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: AppColors.homeHeaderIconFill,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(
-                    Icons.play_arrow_rounded,
-                    size: 20,
-                    color: AppColors.primaryDark,
-                  ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF2D6A4F), Color(0xFF52B788)],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Start an Adventure',
+                borderRadius: BorderRadius.circular(14),
+              ),
+              alignment: Alignment.center,
+              child: const Icon(
+                Icons.directions_run,
+                color: Colors.white,
+                size: 26,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE07B39).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      child: Text(
+                        'NEW SESSION',
                         style: GoogleFonts.poppins(
-                          fontSize: 18,
+                          fontSize: 9,
                           fontWeight: FontWeight.w700,
-                          height: 1.2,
-                          color: AppColors.textPrimary,
+                          letterSpacing: 1,
+                          color: const Color(0xFFE07B39),
+                          height: 1,
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Begin a live session to track your route, steps, and calories.',
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          height: 1.35,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: onStartAdventure,
-                    customBorder: const CircleBorder(),
-                    child: Ink(
-                      width: 40,
-                      height: 40,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            AppColors.primaryLight,
-                            AppColors.primary,
-                          ],
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.arrow_forward_rounded,
-                        color: AppColors.surface,
-                        size: 20,
                       ),
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  Text(
+                    'Start an Adventure',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      height: 1.2,
+                      color: textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'Track route, steps & calories',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      height: 1.3,
+                      color: const Color(0xFF6B7280),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+            const SizedBox(width: 10),
+            GestureDetector(
+              onTap: onStartAdventure,
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF2D6A4F), Color(0xFF52B788)],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF2D6A4F).withValues(alpha: 0.4),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.arrow_forward,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
-  }
-}
-
-class _DashedRRectPainter extends CustomPainter {
-  _DashedRRectPainter({
-    required this.borderRadius,
-    required this.color,
-    required this.strokeWidth,
-    required this.dashLength,
-    required this.gapLength,
-  });
-
-  final double borderRadius;
-  final Color color;
-  final double strokeWidth;
-  final double dashLength;
-  final double gapLength;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rrect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(
-        strokeWidth / 2,
-        strokeWidth / 2,
-        size.width - strokeWidth,
-        size.height - strokeWidth,
-      ),
-      Radius.circular(borderRadius),
-    );
-    final path = Path()..addRRect(rrect);
-
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth;
-
-    for (final metric in path.computeMetrics()) {
-      var distance = 0.0;
-      while (distance < metric.length) {
-        final len = dashLength.clamp(0.0, metric.length - distance);
-        final extract = metric.extractPath(distance, distance + len);
-        canvas.drawPath(extract, paint);
-        distance += dashLength + gapLength;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _DashedRRectPainter oldDelegate) {
-    return oldDelegate.color != color ||
-        oldDelegate.borderRadius != borderRadius ||
-        oldDelegate.strokeWidth != strokeWidth;
   }
 }
