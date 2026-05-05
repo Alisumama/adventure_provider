@@ -15,7 +15,7 @@ class ApiConfig {
   static const String _ipHistoryKey = 'ip_history';
 
   /// Default backend IP for real devices (used when no IP is saved yet).
-  static const String _defaultIp = '192.168.1.101';
+  static const String _defaultIp = '192.168.1.102';
 
   /// Runtime override set via [setIpAddress]. Loaded from Hive on [init].
   static String? _runtimeIp;
