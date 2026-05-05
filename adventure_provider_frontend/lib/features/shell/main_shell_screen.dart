@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../core/controllers/navigation_controller.dart';
@@ -11,8 +12,41 @@ import '../track/views/track_list_screen.dart';
 import 'widgets/main_bottom_nav_bar.dart';
 import 'widgets/sos_fab_overlay.dart';
 
-class MainShellScreen extends StatelessWidget {
+/// Shell with green headers under the status bar (no cream “gap”).
+class MainShellScreen extends StatefulWidget {
   const MainShellScreen({super.key});
+
+  @override
+  State<MainShellScreen> createState() => _MainShellScreenState();
+}
+
+class _MainShellScreenState extends State<MainShellScreen> {
+  Worker? _chromeWorker;
+
+  /// Transparent status bar + light icons so time/battery stay readable on green.
+  static void _applyShellSystemUi() {
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      statusBarBrightness: Brightness.dark,
+      systemNavigationBarColor: AppColors.background,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ));
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final nav = Get.find<NavigationController>();
+    _chromeWorker = ever(nav.currentIndex, (_) => _applyShellSystemUi());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _applyShellSystemUi());
+  }
+
+  @override
+  void dispose() {
+    _chromeWorker?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

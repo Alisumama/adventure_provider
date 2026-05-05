@@ -6,6 +6,7 @@ import 'package:shimmer/shimmer.dart';
 
 import '../../../core/constants/api_config.dart';
 import '../../../core/constants/app_routes.dart';
+import '../../../core/constants/shell_layout.dart';
 import '../controllers/community_controller.dart';
 import '../data/models/community_model.dart';
 
@@ -31,13 +32,14 @@ class _CommunityScreenState extends State<CommunityScreen> {
     return Scaffold(
       backgroundColor: _scaffoldBg,
       body: SafeArea(
-        top: true,
+        top: false,
         bottom: false,
         child: Obx(() {
           final mine =
               _c.communities.where((e) => e.isMember).toList(growable: false);
           final loading = _c.isLoading.value;
           final list = _c.communities;
+          final headerExt = shellCollapsingHeaderExtents(context);
 
           return CustomScrollView(
             physics: const BouncingScrollPhysics(),
@@ -45,6 +47,8 @@ class _CommunityScreenState extends State<CommunityScreen> {
               SliverPersistentHeader(
                 pinned: true,
                 delegate: _CommunityCollapsingHeaderDelegate(
+                  minExtent: headerExt.min,
+                  maxExtent: headerExt.max,
                   pulseDot: const _DiscoverPulseDot(),
                   searchController: _c.searchController,
                   onSearchChanged: _c.scheduleSearchCommunities,
@@ -52,6 +56,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                   onClearSearch: _c.clearSearch,
                   selectedCategoryRx: _c.selectedCategory,
                   onCategory: _c.setCategory,
+                  onRefresh: () => _c.fetchCommunities(refresh: true),
                   onCreateTap: () => Get.toNamed(AppRoutes.createCommunity),
                 ),
               ),
@@ -240,6 +245,8 @@ class _DiscoverPulseDotState extends State<_DiscoverPulseDot>
 /// Min height = sticky title + “New”; max adds search row + chips.
 class _CommunityCollapsingHeaderDelegate extends SliverPersistentHeaderDelegate {
   _CommunityCollapsingHeaderDelegate({
+    required this.minExtent,
+    required this.maxExtent,
     required this.pulseDot,
     required this.searchController,
     required this.onSearchChanged,
@@ -247,8 +254,14 @@ class _CommunityCollapsingHeaderDelegate extends SliverPersistentHeaderDelegate 
     required this.onClearSearch,
     required this.selectedCategoryRx,
     required this.onCategory,
+    required this.onRefresh,
     required this.onCreateTap,
   });
+
+  @override
+  final double minExtent;
+  @override
+  final double maxExtent;
 
   final Widget pulseDot;
   final TextEditingController searchController;
@@ -257,21 +270,10 @@ class _CommunityCollapsingHeaderDelegate extends SliverPersistentHeaderDelegate 
   final VoidCallback onClearSearch;
   final RxString selectedCategoryRx;
   final Future<void> Function(String) onCategory;
+  final VoidCallback onRefresh;
   final VoidCallback onCreateTap;
 
   static const _accent = Color(0xFF52B788);
-
-  /// Fits title row + paddings without overflow when pinned.
-  static const double minExtentCollapsed = 70;
-  /// Extra space for search strip + spacing + chips (scrolls away completely).
-  static const double expandableSection = 104;
-
-  @override
-  double get minExtent =>
-      minExtentCollapsed; // tweak with layout if overflow on device
-
-  @override
-  double get maxExtent => minExtentCollapsed + expandableSection;
 
   @override
   Widget build(
@@ -359,7 +361,12 @@ class _CommunityCollapsingHeaderDelegate extends SliverPersistentHeaderDelegate 
             ),
           ),
           Padding(
-            padding: EdgeInsets.fromLTRB(18, 8 + expandT * 4, 18, 8),
+            padding: EdgeInsets.fromLTRB(
+              18,
+              MediaQuery.paddingOf(context).top + 8 + expandT * 4,
+              18,
+              8,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -367,7 +374,6 @@ class _CommunityCollapsingHeaderDelegate extends SliverPersistentHeaderDelegate 
                   scale: titleScale,
                   alignment: Alignment.centerLeft,
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Expanded(
@@ -402,54 +408,64 @@ class _CommunityCollapsingHeaderDelegate extends SliverPersistentHeaderDelegate 
                           ],
                         ),
                       ),
-                      GestureDetector(
+                      _CommunityOutlineHeaderIconButton(
+                        icon: Icons.refresh_rounded,
+                        onTap: onRefresh,
+                      ),
+                      const SizedBox(width: 6),
+                      _CommunityOutlineHeaderIconButton(
+                        icon: Icons.add,
                         onTap: onCreateTap,
-                        behavior: HitTestBehavior.opaque,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(11),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.2),
-                            ),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.add,
-                                color: Colors.white,
-                                size: 15 + expandT * 1,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'New',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                       ),
                     ],
                   ),
                 ),
                 Expanded(
                   child: ClipRect(
-                    child: Opacity(
-                      opacity: expandT,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      heightFactor: expandT.clamp(0.0, 1.0),
+                      child: Opacity(
+                        opacity: expandT,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
                           const SizedBox(height: 10),
+                          Obx(() {
+                            final selected = selectedCategoryRx.value;
+                            return SizedBox(
+                              height: 36,
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: Row(
+                                    children: [
+                                      _CategoryChipNew(
+                                        label: 'All',
+                                        active: selected.isEmpty,
+                                        onTap: () => onCategory(''),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      _CategoryChipNew(
+                                        label: '🥾 Hiking',
+                                        active: selected == 'hiking',
+                                        onTap: () => onCategory('hiking'),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      _CategoryChipNew(
+                                        label: '🚙 Off-Road',
+                                        active: selected == 'offroading',
+                                        onTap: () => onCategory('offroading'),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+                          SizedBox(height: 8 + expandT * 12),
                           Container(
                             decoration: BoxDecoration(
                               color: Colors.transparent,
@@ -465,7 +481,7 @@ class _CommunityCollapsingHeaderDelegate extends SliverPersistentHeaderDelegate 
                             child: Row(
                               children: [
                                 Icon(
-                                  Icons.search,
+                                  Icons.search_rounded,
                                   size: 16,
                                   color: Colors.white.withValues(alpha: 0.5),
                                 ),
@@ -525,8 +541,9 @@ class _CommunityCollapsingHeaderDelegate extends SliverPersistentHeaderDelegate 
                                   }
                                   return GestureDetector(
                                     onTap: onClearSearch,
+                                    behavior: HitTestBehavior.opaque,
                                     child: Icon(
-                                      Icons.close,
+                                      Icons.close_rounded,
                                       size: 15,
                                       color:
                                           Colors.white.withValues(alpha: 0.5),
@@ -536,35 +553,8 @@ class _CommunityCollapsingHeaderDelegate extends SliverPersistentHeaderDelegate 
                               ],
                             ),
                           ),
-                          const SizedBox(height: 10),
-                          Obx(() {
-                            final selected = selectedCategoryRx.value;
-                            return SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Row(
-                                children: [
-                                  _CategoryChipNew(
-                                    label: 'All',
-                                    active: selected.isEmpty,
-                                    onTap: () => onCategory(''),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  _CategoryChipNew(
-                                    label: '🥾 Hiking',
-                                    active: selected == 'hiking',
-                                    onTap: () => onCategory('hiking'),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  _CategoryChipNew(
-                                    label: '🚙 Off-Road',
-                                    active: selected == 'offroading',
-                                    onTap: () => onCategory('offroading'),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -580,11 +570,43 @@ class _CommunityCollapsingHeaderDelegate extends SliverPersistentHeaderDelegate 
 
   @override
   bool shouldRebuild(covariant _CommunityCollapsingHeaderDelegate oldDelegate) {
-    return oldDelegate.searchController != searchController ||
+    return oldDelegate.minExtent != minExtent ||
+        oldDelegate.maxExtent != maxExtent ||
+        oldDelegate.searchController != searchController ||
         oldDelegate.pulseDot != pulseDot ||
         oldDelegate.selectedCategoryRx != selectedCategoryRx ||
         oldDelegate.searchQueryRx != searchQueryRx ||
+        oldDelegate.onRefresh != onRefresh ||
         oldDelegate.onCreateTap != onCreateTap;
+  }
+}
+
+class _CommunityOutlineHeaderIconButton extends StatelessWidget {
+  const _CommunityOutlineHeaderIconButton({
+    required this.icon,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(11),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.2),
+          ),
+        ),
+        padding: const EdgeInsets.all(8),
+        child: Icon(icon, color: Colors.white, size: 18),
+      ),
+    );
   }
 }
 

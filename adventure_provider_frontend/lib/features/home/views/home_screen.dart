@@ -13,6 +13,7 @@ import '../../profile/controllers/profile_controller.dart';
 import '../../track/controllers/track_controller.dart';
 import '../models/active_session_data.dart';
 import '../widgets/home_communities_section.dart';
+import '../widgets/home_header_status_strip.dart';
 import '../widgets/home_nearby_routes_section.dart';
 import '../widgets/home_quick_map_section.dart';
 import '../widgets/home_my_groups_section.dart';
@@ -100,7 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: scaffoldBg,
       body: SafeArea(
-        top: true,
+        top: false,
         bottom: false,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -495,66 +496,7 @@ class _AdvancedHomeHeader extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.07),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.1),
-                  ),
-                ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.wb_sunny_outlined,
-                            color: Color(0xFFF7B731),
-                            size: 16,
-                          ),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              'Perfect weather for an adventure',
-                              style: GoogleFonts.poppins(
-                                fontSize: 11,
-                                color: Colors.white.withValues(alpha: 0.7),
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.terrain,
-                          color: _accent,
-                          size: 14,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Ready',
-                          style: GoogleFonts.poppins(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: _accent,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+              const HomeHeaderStatusStrip(),
             ],
           ),
         ),
