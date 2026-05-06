@@ -346,6 +346,44 @@ async function updateCommunityImage(req, res) {
 }
 
 /**
+ * PUT /communities/:communityId/cover-image
+ * Multipart field: coverImage
+ */
+async function updateCommunityCoverImage(req, res) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Cover image file is required' });
+    }
+
+    const { communityId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(communityId)) {
+      return res.status(400).json({ message: 'Invalid community id' });
+    }
+
+    const community = await Community.findById(communityId);
+    if (!community || !community.isActive) {
+      return res.status(404).json({ message: 'Community not found' });
+    }
+
+    if (!isCommunityAdmin(community, req.user._id)) {
+      return res.status(403).json({ message: 'Only an admin can update this cover image' });
+    }
+
+    const relativePath = `uploads/covers/${req.file.filename}`;
+    await safeDeleteStoredUpload(community.coverImage, 'covers');
+
+    community.coverImage = relativePath;
+    await community.save();
+    await community.populate('createdBy', 'name profileImage');
+
+    return res.status(200).json({ community });
+  } catch (err) {
+    console.error('updateCommunityCoverImage:', err);
+    return res.status(500).json({ message: err.message || 'Failed to update cover image' });
+  }
+}
+
+/**
  * GET /communities/:communityId/posts
  */
 async function getCommunityPosts(req, res) {
@@ -828,6 +866,7 @@ module.exports = {
   leaveCommunity,
   updateCommunity,
   updateCommunityImage,
+  updateCommunityCoverImage,
   getCommunityPosts,
   createPost,
   toggleLikePost,

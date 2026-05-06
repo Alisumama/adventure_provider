@@ -1,9 +1,34 @@
+const fs = require('fs');
+const path = require('path');
 const mongoose = require('mongoose');
 const Group = require('../models/group.model');
 const LiveSession = require('../models/live_session.model');
 
 function isValidObjectId(id) {
   return mongoose.Types.ObjectId.isValid(id);
+}
+
+async function safeDeleteStoredUpload(stored, folderKey) {
+  if (!stored || typeof stored !== 'string') return;
+  const prefixRel = `uploads/${folderKey}/`;
+  const prefixUrl = `/uploads/${folderKey}/`;
+  try {
+    let relative;
+    if (stored.startsWith('http://') || stored.startsWith('https://')) {
+      const parsed = new URL(stored);
+      const pathname = parsed.pathname || '';
+      if (!pathname.startsWith(prefixUrl)) return;
+      relative = pathname.replace(/^\//, '');
+    } else {
+      const s = stored.replace(/^\//, '');
+      if (!s.startsWith(prefixRel)) return;
+      relative = s;
+    }
+    const diskPath = path.join(__dirname, '..', relative);
+    await fs.promises.unlink(diskPath);
+  } catch (err) {
+    if (err && err.code === 'ENOENT') return;
+  }
 }
 
 /**
@@ -343,6 +368,84 @@ async function updateMemberLocation(req, res) {
   }
 }
 
+/**
+ * PUT /api/groups/:id/image — update group profile image (admin only).
+ * Multipart field: image
+ */
+async function updateGroupImage(req, res) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Image file is required' });
+    }
+
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ message: 'Invalid group ID' });
+    }
+
+    const group = await Group.findById(id);
+    if (!group || !group.isActive) {
+      return res.status(404).json({ message: 'Group not found' });
+    }
+
+    const adminMember = group.members.find(
+      (m) => m.userId.equals(req.user._id) && m.isActive && m.role === 'admin'
+    );
+    if (!adminMember) {
+      return res.status(403).json({ message: 'Only admins can update group image' });
+    }
+
+    const relativePath = `uploads/groups/${req.file.filename}`;
+    await safeDeleteStoredUpload(group.image, 'groups');
+    group.image = relativePath;
+    await group.save();
+
+    return res.status(200).json(group);
+  } catch (err) {
+    console.error('updateGroupImage error:', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+}
+
+/**
+ * PUT /api/groups/:id/cover-image — update group cover image (admin only).
+ * Multipart field: coverImage
+ */
+async function updateGroupCoverImage(req, res) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Cover image file is required' });
+    }
+
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ message: 'Invalid group ID' });
+    }
+
+    const group = await Group.findById(id);
+    if (!group || !group.isActive) {
+      return res.status(404).json({ message: 'Group not found' });
+    }
+
+    const adminMember = group.members.find(
+      (m) => m.userId.equals(req.user._id) && m.isActive && m.role === 'admin'
+    );
+    if (!adminMember) {
+      return res.status(403).json({ message: 'Only admins can update group cover image' });
+    }
+
+    const relativePath = `uploads/covers/${req.file.filename}`;
+    await safeDeleteStoredUpload(group.coverImage, 'covers');
+    group.coverImage = relativePath;
+    await group.save();
+
+    return res.status(200).json(group);
+  } catch (err) {
+    console.error('updateGroupCoverImage error:', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+}
+
 module.exports = {
   createGroup,
   joinGroup,
@@ -353,4 +456,6 @@ module.exports = {
   stopGroupTracking,
   leaveGroup,
   updateMemberLocation,
+  updateGroupImage,
+  updateGroupCoverImage,
 };

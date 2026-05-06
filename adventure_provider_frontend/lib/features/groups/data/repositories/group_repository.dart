@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 
 class GroupRepository {
@@ -47,6 +49,36 @@ class GroupRepository {
         data: {'name': name, 'description': description},
       );
       return _requireMap(response.data);
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
+  /// PUT /groups/:id/image (multipart, field name [image])
+  Future<void> updateGroupImage(String groupId, File imageFile) async {
+    try {
+      final formData = FormData.fromMap({
+        'image': await MultipartFile.fromFile(
+          imageFile.path,
+          filename: imageFile.path.split(RegExp(r'[/\\]')).last,
+        ),
+      });
+      await _dio.put<dynamic>('$_groups/$groupId/image', data: formData);
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
+  /// PUT /groups/:id/cover-image (multipart, field name [coverImage])
+  Future<void> updateGroupCoverImage(String groupId, File imageFile) async {
+    try {
+      final formData = FormData.fromMap({
+        'coverImage': await MultipartFile.fromFile(
+          imageFile.path,
+          filename: imageFile.path.split(RegExp(r'[/\\]')).last,
+        ),
+      });
+      await _dio.put<dynamic>('$_groups/$groupId/cover-image', data: formData);
     } on DioException catch (e) {
       throw Exception(_messageFromDio(e));
     }

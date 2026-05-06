@@ -77,6 +77,7 @@ class GroupModel {
     this.maxMembers = 10,
     this.isActive = true,
     this.coverImage,
+    this.image,
   });
 
   final String id;
@@ -89,6 +90,7 @@ class GroupModel {
   final int maxMembers;
   final bool isActive;
   final String? coverImage;
+  final String? image;
 
   int get memberCount => members.where((m) => m.isActive).length;
 
@@ -117,6 +119,7 @@ class GroupModel {
       maxMembers: (json['maxMembers'] as num?)?.toInt() ?? 10,
       isActive: json['isActive'] as bool? ?? true,
       coverImage: json['coverImage'] as String?,
+      image: json['image'] as String?,
     );
   }
 
@@ -131,6 +134,7 @@ class GroupModel {
         'maxMembers': maxMembers,
         'isActive': isActive,
         if (coverImage != null) 'coverImage': coverImage,
+        if (image != null) 'image': image,
       };
 
   GroupModel copyWith({
@@ -144,6 +148,7 @@ class GroupModel {
     int? maxMembers,
     bool? isActive,
     String? coverImage,
+    String? image,
   }) {
     return GroupModel(
       id: id ?? this.id,
@@ -156,6 +161,7 @@ class GroupModel {
       maxMembers: maxMembers ?? this.maxMembers,
       isActive: isActive ?? this.isActive,
       coverImage: coverImage ?? this.coverImage,
+      image: image ?? this.image,
     );
   }
 }

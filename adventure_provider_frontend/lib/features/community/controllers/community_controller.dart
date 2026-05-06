@@ -378,6 +378,7 @@ class CommunityController extends GetxController {
     required String visibility,
     required String category,
     File? imageFile,
+    File? coverImageFile,
   }) async {
     isCreating.value = true;
     try {
@@ -390,6 +391,9 @@ class CommunityController extends GetxController {
       final id = _extractCommunityId(map);
       if (imageFile != null && id != null && id.isNotEmpty) {
         await _repository.updateCommunityImage(id, imageFile);
+      }
+      if (coverImageFile != null && id != null && id.isNotEmpty) {
+        await _repository.updateCommunityCoverImage(id, coverImageFile);
       }
       Get.snackbar(
         'Success',

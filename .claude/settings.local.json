@@ -3,7 +3,10 @@
     "allow": [
       "Bash(git checkout:*)",
       "Bash(git add:*)",
-      "Bash(dart analyze:*)"
+      "Bash(dart analyze:*)",
+      "Bash(kill 19451)",
+      "Bash(rm -f /Users/alihassanabbasi/.gradle/wrapper/dists/gradle-8.13-all/54h0s9kvb6g2sinako7ub77ku/gradle-8.13-all.zip.lck)",
+      "Bash(flutter run:*)"
     ]
   }
 }

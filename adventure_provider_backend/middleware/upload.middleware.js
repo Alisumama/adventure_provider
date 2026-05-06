@@ -59,8 +59,26 @@ const communityStorage = multer.diskStorage({
   },
 });
 
+const groupStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = 'uploads/groups';
+    fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
+  },
+});
+
 const uploadCommunityImage = multer({
   storage: communityStorage,
+  limits: { fileSize: MAX_FILE_SIZE },
+  fileFilter,
+});
+
+const uploadGroupImage = multer({
+  storage: groupStorage,
   limits: { fileSize: MAX_FILE_SIZE },
   fileFilter,
 });
@@ -105,6 +123,7 @@ module.exports = {
   uploadProfileImage,
   uploadCoverImage,
   uploadCommunityImage,
+  uploadGroupImage,
   uploadTrackFlagImage,
   uploadTrackPhoto,
 };

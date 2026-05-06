@@ -676,7 +676,7 @@ class _MyCommunityStripItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final url = resolveImage(community.image);
+    final profileUrl = resolveImage(community.image);
     final letter =
         community.name.isNotEmpty ? community.name[0].toUpperCase() : '?';
 
@@ -714,9 +714,9 @@ class _MyCommunityStripItem extends StatelessWidget {
                       ],
                     ),
                     clipBehavior: Clip.antiAlias,
-                    child: url != null && url.isNotEmpty
+                    child: profileUrl != null && profileUrl.isNotEmpty
                         ? CachedNetworkImage(
-                            imageUrl: url,
+                            imageUrl: profileUrl,
                             fit: BoxFit.cover,
                             width: 60,
                             height: 60,
@@ -828,7 +828,8 @@ class _CommunityCardNew extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final url = resolveImage(community.image);
+    final profileUrl = resolveImage(community.image);
+    final coverUrl = resolveImage(community.coverImage);
     final letter =
         community.name.isNotEmpty ? community.name[0].toUpperCase() : '?';
 
@@ -862,12 +863,12 @@ class _CommunityCardNew extends StatelessWidget {
                   child: SizedBox(
                     height: 80,
                     width: double.infinity,
-                    child: url != null && url.isNotEmpty
+                    child: coverUrl != null && coverUrl.isNotEmpty
                         ? Stack(
                             fit: StackFit.expand,
                             children: [
                               CachedNetworkImage(
-                                imageUrl: url,
+                                imageUrl: coverUrl,
                                 fit: BoxFit.cover,
                                 placeholder: (_, __) => Container(
                                   decoration: const BoxDecoration(
@@ -1015,9 +1016,9 @@ class _CommunityCardNew extends StatelessWidget {
                       ],
                     ),
                     clipBehavior: Clip.antiAlias,
-                    child: url != null && url.isNotEmpty
+                    child: profileUrl != null && profileUrl.isNotEmpty
                         ? CachedNetworkImage(
-                            imageUrl: url,
+                            imageUrl: profileUrl,
                             fit: BoxFit.cover,
                             errorWidget: (_, __, ___) => Center(
                               child: Text(

@@ -27,6 +27,7 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
   CommunityController get _controller => Get.find<CommunityController>();
 
   File? _imageFile;
+  File? _coverImageFile;
   String? _visibility;
   String? _category;
 
@@ -60,6 +61,13 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
     final x = await _picker.pickImage(source: source, imageQuality: 85);
     if (x != null && mounted) {
       setState(() => _imageFile = File(x.path));
+    }
+  }
+
+  Future<void> _pickCoverImage(ImageSource source) async {
+    final x = await _picker.pickImage(source: source, imageQuality: 85);
+    if (x != null && mounted) {
+      setState(() => _coverImageFile = File(x.path));
     }
   }
 
@@ -104,6 +112,47 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
     );
   }
 
+  void _openCoverImagePickerSheet() {
+    Get.bottomSheet<void>(
+      Container(
+        decoration: const BoxDecoration(
+          color: AppColors.darkSurface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: Colors.white70),
+                title: Text(
+                  'Choose cover from gallery',
+                  style: GoogleFonts.poppins(color: Colors.white),
+                ),
+                onTap: () async {
+                  Get.back<void>();
+                  await _pickCoverImage(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: Colors.white70),
+                title: Text(
+                  'Take a cover photo',
+                  style: GoogleFonts.poppins(color: Colors.white),
+                ),
+                onTap: () async {
+                  Get.back<void>();
+                  await _pickCoverImage(ImageSource.camera);
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _onCreate() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
@@ -122,6 +171,7 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
       visibility: _visibility!,
       category: _category!,
       imageFile: _imageFile,
+      coverImageFile: _coverImageFile,
     );
   }
 
@@ -153,6 +203,69 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              GestureDetector(
+                onTap: _openCoverImagePickerSheet,
+                child: Container(
+                  height: 120,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    color: AppColors.darkSurface,
+                    border: Border.all(
+                      color: const Color(0xFF2A2A2A),
+                    ),
+                    image: _coverImageFile != null
+                        ? DecorationImage(
+                            image: FileImage(_coverImageFile!),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                  ),
+                  child: _coverImageFile == null
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.image_outlined,
+                                color: Colors.white70,
+                                size: 28,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Add Cover Image',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : Align(
+                          alignment: Alignment.topRight,
+                          child: Container(
+                            margin: const EdgeInsets.all(8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.45),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'Cover',
+                              style: GoogleFonts.poppins(
+                                fontSize: 10,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 16),
               Center(
                 child: SizedBox(
                   width: 104,
@@ -220,7 +333,7 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Community Photo',
+                'Community Profile Photo',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(
                   fontSize: 12,

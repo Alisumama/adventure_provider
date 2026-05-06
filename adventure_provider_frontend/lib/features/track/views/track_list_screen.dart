@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart' as ll;
 
+import '../../../core/constants/api_config.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../core/constants/shell_layout.dart';
 import '../../../core/theme/app_colors.dart';
@@ -673,6 +674,16 @@ class _TrackCard extends StatelessWidget {
     return '${d[0].toUpperCase()}${d.substring(1).toLowerCase()}';
   }
 
+  String? _previewImageUrl() {
+    final cover = ApiConfig.resolveMediaUrl(track.coverImage);
+    if (cover != null && cover.isNotEmpty) return cover;
+    if (track.photos.isNotEmpty) {
+      final first = ApiConfig.resolveMediaUrl(track.photos.first);
+      if (first != null && first.isNotEmpty) return first;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final diffColor = _difficultyColor(track.difficulty);
@@ -707,7 +718,10 @@ class _TrackCard extends StatelessWidget {
                 child: SizedBox(
                   height: 120,
                   width: double.infinity,
-                  child: _TrackRoutePreviewMap(track: track),
+                  child: _TrackHeaderPreview(
+                    track: track,
+                    imageUrl: _previewImageUrl(),
+                  ),
                 ),
               ),
               Padding(
@@ -777,6 +791,27 @@ class _TrackCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _TrackHeaderPreview extends StatelessWidget {
+  const _TrackHeaderPreview({required this.track, required this.imageUrl});
+
+  final TrackModel track;
+  final String? imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = imageUrl;
+    if (url != null && url.isNotEmpty) {
+      return Image.network(
+        url,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) =>
+            IgnorePointer(child: _TrackRoutePreviewMap(track: track)),
+      );
+    }
+    return IgnorePointer(child: _TrackRoutePreviewMap(track: track));
   }
 }
 

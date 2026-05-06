@@ -63,6 +63,9 @@ const groupSchema = new mongoose.Schema(
     coverImage: {
       type: String,
     },
+    image: {
+      type: String,
+    },
   },
   { timestamps: true }
 );

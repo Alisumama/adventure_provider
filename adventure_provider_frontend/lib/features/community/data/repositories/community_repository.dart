@@ -139,6 +139,27 @@ class CommunityRepository {
     }
   }
 
+  /// PUT /community/:id/cover-image (multipart, field name [coverImage])
+  Future<void> updateCommunityCoverImage(
+    String communityId,
+    File imageFile,
+  ) async {
+    try {
+      final formData = FormData.fromMap({
+        'coverImage': await MultipartFile.fromFile(
+          imageFile.path,
+          filename: imageFile.path.split(RegExp(r'[/\\]')).last,
+        ),
+      });
+      await _dio.put<dynamic>(
+        '$_community/$communityId/cover-image',
+        data: formData,
+      );
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
   /// GET /community/:id/posts?page=
   Future<Map<String, dynamic>> getCommunityPosts(
     String communityId, {

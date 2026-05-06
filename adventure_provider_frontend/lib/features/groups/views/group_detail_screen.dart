@@ -166,6 +166,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
 
   Widget _buildHeader(GroupModel group) {
     final url = _resolveImage(group.coverImage);
+    final profileUrl = _resolveImage(group.image);
     final letter = group.name.isNotEmpty ? group.name[0].toUpperCase() : '?';
 
     return SizedBox(
@@ -220,12 +221,35 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
           // Group name
           Positioned(
             bottom: 44,
-            left: 16,
+            left: 70,
             right: 16,
             child: Text(
               group.name,
               style: GoogleFonts.bebasNeue(
                   fontSize: 22, color: Colors.white, letterSpacing: 1),
+            ),
+          ),
+          Positioned(
+            bottom: 34,
+            left: 16,
+            child: Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: ClipOval(
+                child: profileUrl != null && profileUrl.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: profileUrl,
+                        fit: BoxFit.cover,
+                        placeholder: (_, __) => _headerGradient(letter),
+                        errorWidget: (_, __, ___) => _headerGradient(letter),
+                      )
+                    : _headerGradient(letter),
+              ),
             ),
           ),
 

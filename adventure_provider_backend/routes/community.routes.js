@@ -1,6 +1,6 @@
 const express = require('express');
 const protect = require('../middleware/protect');
-const { uploadCommunityImage } = require('../middleware/upload.middleware');
+const { uploadCommunityImage, uploadCoverImage } = require('../middleware/upload.middleware');
 const communityController = require('../controllers/community.controller');
 
 const router = express.Router();
@@ -47,6 +47,12 @@ router.put(
   protect,
   uploadCommunityImage.single('image'),
   communityController.updateCommunityImage
+);
+router.put(
+  '/:communityId/cover-image',
+  protect,
+  uploadCoverImage.single('coverImage'),
+  communityController.updateCommunityCoverImage
 );
 
 router.put('/:communityId', protect, communityController.updateCommunity);

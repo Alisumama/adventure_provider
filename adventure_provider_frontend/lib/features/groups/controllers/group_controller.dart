@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -67,16 +68,29 @@ class GroupController extends GetxController {
     }
   }
 
-  Future<void> createGroup(String name, String description) async {
+  Future<void> createGroup(
+    String name,
+    String description, {
+    File? imageFile,
+    File? coverImageFile,
+  }) async {
     isLoading.value = true;
     try {
       final data = await _repository.createGroup(
           name: name, description: description);
       final group = GroupModel.fromJson(data);
-      myGroups.add(group);
+      if (imageFile != null) {
+        await _repository.updateGroupImage(group.id, imageFile);
+      }
+      if (coverImageFile != null) {
+        await _repository.updateGroupCoverImage(group.id, coverImageFile);
+      }
+      final refreshed = await _repository.getGroupById(group.id);
+      final updatedGroup = GroupModel.fromJson(refreshed);
+      myGroups.add(updatedGroup);
       Get.snackbar(
         'Group Created',
-        'Invite code: ${group.inviteCode}',
+        'Invite code: ${updatedGroup.inviteCode}',
         snackPosition: SnackPosition.BOTTOM,
         duration: const Duration(seconds: 5),
       );

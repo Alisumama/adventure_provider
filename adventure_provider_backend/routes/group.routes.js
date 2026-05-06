@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/protect');
+const { uploadGroupImage, uploadCoverImage } = require('../middleware/upload.middleware');
 const groupController = require('../controllers/group.controller');
 
 router.post('/', authMiddleware, groupController.createGroup);
@@ -12,5 +13,17 @@ router.post('/:id/start-tracking', authMiddleware, groupController.startGroupTra
 router.post('/:id/stop-tracking', authMiddleware, groupController.stopGroupTracking);
 router.delete('/:id/leave', authMiddleware, groupController.leaveGroup);
 router.post('/:id/location', authMiddleware, groupController.updateMemberLocation);
+router.put(
+  '/:id/image',
+  authMiddleware,
+  uploadGroupImage.single('image'),
+  groupController.updateGroupImage
+);
+router.put(
+  '/:id/cover-image',
+  authMiddleware,
+  uploadCoverImage.single('coverImage'),
+  groupController.updateGroupCoverImage
+);
 
 module.exports = router;

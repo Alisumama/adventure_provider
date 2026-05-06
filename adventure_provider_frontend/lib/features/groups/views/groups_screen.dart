@@ -1,8 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../core/constants/api_config.dart';
 import '../../../core/constants/app_routes.dart';
@@ -70,8 +72,13 @@ class _GroupsScreenState extends State<GroupsScreen> {
           curve: Curves.easeOut,
           padding: EdgeInsets.only(bottom: kb),
           child: _CreateGroupSheet(
-            onCreated: (name, description) =>
-                _gc.createGroup(name, description),
+            onCreated: (name, description, imageFile, coverImageFile) =>
+                _gc.createGroup(
+              name,
+              description,
+              imageFile: imageFile,
+              coverImageFile: coverImageFile,
+            ),
           ),
         );
       },
@@ -632,7 +639,12 @@ class _GroupsPulseDotState extends State<_GroupsPulseDot>
 class _CreateGroupSheet extends StatefulWidget {
   const _CreateGroupSheet({required this.onCreated});
 
-  final void Function(String name, String description) onCreated;
+  final void Function(
+    String name,
+    String description,
+    File? imageFile,
+    File? coverImageFile,
+  ) onCreated;
 
   @override
   State<_CreateGroupSheet> createState() => _CreateGroupSheetState();
@@ -641,6 +653,9 @@ class _CreateGroupSheet extends StatefulWidget {
 class _CreateGroupSheetState extends State<_CreateGroupSheet> {
   late final TextEditingController _nameCtrl;
   late final TextEditingController _descCtrl;
+  final ImagePicker _picker = ImagePicker();
+  File? _profileImageFile;
+  File? _coverImageFile;
 
   static const _primaryDark = Color(0xFF1B4332);
   static const _textPrimary = Color(0xFF1A1A2E);
@@ -668,7 +683,61 @@ class _CreateGroupSheetState extends State<_CreateGroupSheet> {
     if (name.isEmpty) return;
     final desc = _descCtrl.text.trim();
     if (context.mounted) Navigator.of(context).pop<void>();
-    widget.onCreated(name, desc);
+    widget.onCreated(name, desc, _profileImageFile, _coverImageFile);
+  }
+
+  Future<void> _pickProfileImage(ImageSource source) async {
+    final x = await _picker.pickImage(source: source, imageQuality: 85);
+    if (x == null || !mounted) return;
+    setState(() => _profileImageFile = File(x.path));
+  }
+
+  Future<void> _pickCoverImage(ImageSource source) async {
+    final x = await _picker.pickImage(source: source, imageQuality: 85);
+    if (x == null || !mounted) return;
+    setState(() => _coverImageFile = File(x.path));
+  }
+
+  void _openPickerSheet({required bool forCover}) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from gallery'),
+              onTap: () async {
+                Navigator.of(context).pop<void>();
+                if (forCover) {
+                  await _pickCoverImage(ImageSource.gallery);
+                } else {
+                  await _pickProfileImage(ImageSource.gallery);
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined),
+              title: const Text('Take a photo'),
+              onTap: () async {
+                Navigator.of(context).pop<void>();
+                if (forCover) {
+                  await _pickCoverImage(ImageSource.camera);
+                } else {
+                  await _pickProfileImage(ImageSource.camera);
+                }
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
   }
 
   InputDecoration _fieldDeco(String hint) {
@@ -766,7 +835,7 @@ class _CreateGroupSheetState extends State<_CreateGroupSheet> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Give your crew a name and optional description.',
+                  'Add group profile and cover images, then invite your crew.',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(
                     fontSize: 13,
@@ -775,6 +844,52 @@ class _CreateGroupSheetState extends State<_CreateGroupSheet> {
                   ),
                 ),
                 const SizedBox(height: 22),
+                GestureDetector(
+                  onTap: () => _openPickerSheet(forCover: true),
+                  child: Container(
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: _fieldFill,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: _border),
+                      image: _coverImageFile != null
+                          ? DecorationImage(
+                              image: FileImage(_coverImageFile!),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                    ),
+                    child: _coverImageFile == null
+                        ? Center(
+                            child: Text(
+                              'Add Cover Image',
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                color: _muted,
+                              ),
+                            ),
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.center,
+                  child: GestureDetector(
+                    onTap: () => _openPickerSheet(forCover: false),
+                    child: CircleAvatar(
+                      radius: 32,
+                      backgroundColor: _fieldFill,
+                      backgroundImage: _profileImageFile != null
+                          ? FileImage(_profileImageFile!)
+                          : null,
+                      child: _profileImageFile == null
+                          ? const Icon(Icons.camera_alt_outlined, color: _muted)
+                          : null,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 TextField(
                   controller: _nameCtrl,
                   textInputAction: TextInputAction.next,
@@ -1084,7 +1199,8 @@ class _GroupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final url = resolveImage(group.coverImage);
+    final coverUrl = resolveImage(group.coverImage);
+    final profileUrl = resolveImage(group.image);
     final letter =
         group.name.isNotEmpty ? group.name[0].toUpperCase() : '?';
 
@@ -1110,21 +1226,55 @@ class _GroupCard extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             child: Row(
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: SizedBox(
-                    width: 52,
-                    height: 52,
-                    child: url != null && url.isNotEmpty
-                        ? CachedNetworkImage(
-                            imageUrl: url,
-                            fit: BoxFit.cover,
-                            placeholder: (_, __) =>
-                                _GradientPlaceholder(letter: letter),
-                            errorWidget: (_, __, ___) =>
-                                _GradientPlaceholder(letter: letter),
-                          )
-                        : _GradientPlaceholder(letter: letter),
+                SizedBox(
+                  width: 62,
+                  height: 52,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: SizedBox(
+                          width: 52,
+                          height: 52,
+                          child: coverUrl != null && coverUrl.isNotEmpty
+                              ? CachedNetworkImage(
+                                  imageUrl: coverUrl,
+                                  fit: BoxFit.cover,
+                                  placeholder: (_, __) =>
+                                      _GradientPlaceholder(letter: letter),
+                                  errorWidget: (_, __, ___) =>
+                                      _GradientPlaceholder(letter: letter),
+                                )
+                              : _GradientPlaceholder(letter: letter),
+                        ),
+                      ),
+                      Positioned(
+                        right: 0,
+                        bottom: -2,
+                        child: Container(
+                          width: 22,
+                          height: 22,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 1.5),
+                          ),
+                          child: ClipOval(
+                            child: profileUrl != null && profileUrl.isNotEmpty
+                                ? CachedNetworkImage(
+                                    imageUrl: profileUrl,
+                                    fit: BoxFit.cover,
+                                    placeholder: (_, __) =>
+                                        _GradientPlaceholder(letter: letter),
+                                    errorWidget: (_, __, ___) =>
+                                        _GradientPlaceholder(letter: letter),
+                                  )
+                                : _GradientPlaceholder(letter: letter),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 12),
