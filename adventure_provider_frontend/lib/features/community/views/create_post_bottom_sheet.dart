@@ -205,9 +205,11 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     if (content.isEmpty && _selectedImages.isEmpty) return;
 
     final trackId = _selectedTrack.value?.id;
-    await _c.createPostAdvanced(widget.communityId,
+    final ok = await _c.createPostAdvanced(widget.communityId,
         content: content, trackId: trackId);
-    Get.back<void>();
+    if (ok) {
+      Get.back<void>();
+    }
   }
 
   @override

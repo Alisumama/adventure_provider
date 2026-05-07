@@ -121,8 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     duration: const Duration(seconds: 2),
                   );
                 },
-                onAvatarTap: () =>
-                    _navigateToTab(NavigationController.tabProfile),
+                onAvatarTap: () => Get.toNamed(AppRoutes.profile),
               );
             }),
             Expanded(

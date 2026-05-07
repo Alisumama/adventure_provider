@@ -141,9 +141,16 @@ class _CommunityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl =
-        ApiConfig.resolveMediaUrl(community.image) ??
-        ApiConfig.resolveMediaUrl(community.coverImage);
+    final coverUrl = ApiConfig.resolveMediaUrl(community.coverImage);
+    final profileUrl = ApiConfig.resolveMediaUrl(community.image);
+    final bannerUrl = (coverUrl != null && coverUrl.isNotEmpty)
+        ? coverUrl
+        : profileUrl;
+    final showProfileBadge = coverUrl != null &&
+        coverUrl.isNotEmpty &&
+        profileUrl != null &&
+        profileUrl.isNotEmpty &&
+        profileUrl != coverUrl;
     final letter = community.name.isNotEmpty
         ? community.name[0].toUpperCase()
         : '?';
@@ -172,9 +179,9 @@ class _CommunityCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  if (imageUrl != null && imageUrl.isNotEmpty)
+                  if (bannerUrl != null && bannerUrl.isNotEmpty)
                     CachedNetworkImage(
-                      imageUrl: imageUrl,
+                      imageUrl: bannerUrl,
                       fit: BoxFit.cover,
                       errorWidget: (_, __, ___) =>
                           _FallbackCover(letter: letter),
@@ -195,6 +202,37 @@ class _CommunityCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (showProfileBadge)
+                    Positioned(
+                      left: 8,
+                      bottom: 8,
+                      child: Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: ClipOval(
+                          child: CachedNetworkImage(
+                            imageUrl: profileUrl,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, __, ___) => Container(
+                              color: const Color(0xFF1B4332),
+                              alignment: Alignment.center,
+                              child: Text(
+                                letter,
+                                style: GoogleFonts.bebasNeue(
+                                  fontSize: 14,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   if (community.isMember)
                     Positioned(
                       top: 8,

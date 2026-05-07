@@ -2325,8 +2325,10 @@ class _CreatePostBottomSheet extends StatelessWidget {
               AuthButton(
                 label: 'Post',
                 onPressed: () async {
-                  await controller.createPost(communityId);
-                  Get.back<void>();
+                  final ok = await controller.createPost(communityId);
+                  if (ok) {
+                    Get.back<void>();
+                  }
                 },
               ),
             ],
