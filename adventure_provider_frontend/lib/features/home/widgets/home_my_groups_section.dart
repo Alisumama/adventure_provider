@@ -118,7 +118,16 @@ class _GroupCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final activeCount = group.members.where((m) => m.isActive).length;
-    final imageUrl = ApiConfig.resolveMediaUrl(group.coverImage);
+    final coverUrl = ApiConfig.resolveMediaUrl(group.coverImage);
+    final profileUrl = ApiConfig.resolveMediaUrl(group.image);
+    final tileUrl = (coverUrl != null && coverUrl.isNotEmpty)
+        ? coverUrl
+        : profileUrl;
+    final showProfileBadge = coverUrl != null &&
+        coverUrl.isNotEmpty &&
+        profileUrl != null &&
+        profileUrl.isNotEmpty &&
+        profileUrl != coverUrl;
     final letter = group.name.isNotEmpty ? group.name[0].toUpperCase() : '?';
 
     return Material(
@@ -142,41 +151,81 @@ class _GroupCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
               children: [
-                Container(
-                  width: 48,
+                SizedBox(
+                  width: 52,
                   height: 48,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF1B4332), Color(0xFF52B788)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: imageUrl != null && imageUrl.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: imageUrl,
-                          fit: BoxFit.cover,
-                          errorWidget: (_, __, ___) => Center(
-                            child: Text(
-                              letter,
-                              style: GoogleFonts.bebasNeue(
-                                fontSize: 22,
-                                color: Colors.white,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF1B4332), Color(0xFF52B788)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: tileUrl != null && tileUrl.isNotEmpty
+                            ? CachedNetworkImage(
+                                imageUrl: tileUrl,
+                                fit: BoxFit.cover,
+                                errorWidget: (_, __, ___) => Center(
+                                  child: Text(
+                                    letter,
+                                    style: GoogleFonts.bebasNeue(
+                                      fontSize: 22,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : Center(
+                                child: Text(
+                                  letter,
+                                  style: GoogleFonts.bebasNeue(
+                                    fontSize: 22,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                      ),
+                      if (showProfileBadge)
+                        Positioned(
+                          right: 0,
+                          bottom: -2,
+                          child: Container(
+                            width: 22,
+                            height: 22,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 1.5),
+                            ),
+                            child: ClipOval(
+                              child: CachedNetworkImage(
+                                imageUrl: profileUrl,
+                                fit: BoxFit.cover,
+                                errorWidget: (_, __, ___) => Container(
+                                  color: const Color(0xFF1B4332),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    letter,
+                                    style: GoogleFonts.bebasNeue(
+                                      fontSize: 10,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
-                        )
-                      : Center(
-                          child: Text(
-                            letter,
-                            style: GoogleFonts.bebasNeue(
-                              fontSize: 22,
-                              color: Colors.white,
-                            ),
-                          ),
                         ),
+                    ],
+                  ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(

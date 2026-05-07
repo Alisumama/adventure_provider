@@ -459,10 +459,11 @@ class CommunityController extends GetxController {
     }
   }
 
-  Future<void> createPost(String communityId) async {
+  Future<bool> createPost(String communityId) async {
     final content = postContentController.text.trim();
-    if (content.isEmpty) return;
+    if (content.isEmpty) return false;
 
+    isCreating.value = true;
     try {
       final map = await _repository.createPost(
         communityId,
@@ -476,23 +477,28 @@ class CommunityController extends GetxController {
         communityId,
         (c) => c.copyWith(totalPosts: c.totalPosts + 1),
       );
+      return true;
     } catch (e) {
       Get.snackbar(
         'Error',
         _cleanError(e),
         snackPosition: SnackPosition.BOTTOM,
       );
+      return false;
+    } finally {
+      isCreating.value = false;
     }
   }
 
   /// Used by the new create-post bottom sheet (supports optional trackId).
-  Future<void> createPostAdvanced(
+  Future<bool> createPostAdvanced(
     String communityId, {
     required String content,
     String? trackId,
   }) async {
     final trimmed = content.trim();
-    if (trimmed.isEmpty) return;
+    if (trimmed.isEmpty) return false;
+    isCreating.value = true;
     try {
       final map = await _repository.createPost(
         communityId,
@@ -505,12 +511,16 @@ class CommunityController extends GetxController {
         communityId,
         (c) => c.copyWith(totalPosts: c.totalPosts + 1),
       );
+      return true;
     } catch (e) {
       Get.snackbar(
         'Error',
         _cleanError(e),
         snackPosition: SnackPosition.BOTTOM,
       );
+      return false;
+    } finally {
+      isCreating.value = false;
     }
   }
 

@@ -1,7 +1,9 @@
-import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/constants/api_config.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../track/data/models/track_model.dart';
 
@@ -186,6 +188,16 @@ String _trackTypeChip(TrackModel t) {
   return '${raw[0].toUpperCase()}${raw.substring(1).toLowerCase()}';
 }
 
+String? _trackPreviewImageUrl(TrackModel track) {
+  final cover = ApiConfig.resolveMediaUrl(track.coverImage);
+  if (cover != null && cover.isNotEmpty) return cover;
+  if (track.photos.isNotEmpty) {
+    final first = ApiConfig.resolveMediaUrl(track.photos.first);
+    if (first != null && first.isNotEmpty) return first;
+  }
+  return null;
+}
+
 class _TrackRouteCard extends StatelessWidget {
   const _TrackRouteCard({required this.track, this.onTap});
 
@@ -197,6 +209,7 @@ class _TrackRouteCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dStyle = _difficultyStyle(track.difficulty);
+    final previewUrl = _trackPreviewImageUrl(track);
 
     return GestureDetector(
       onTap: onTap,
@@ -221,25 +234,59 @@ class _TrackRouteCard extends StatelessWidget {
               height: 118,
               child: Stack(
                 clipBehavior: Clip.hardEdge,
+                fit: StackFit.expand,
                 children: [
-                  const Positioned.fill(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [Color(0xFF1B4332), Color(0xFF2D6A4F)],
-                        ),
+                  Positioned.fill(
+                    child: previewUrl != null && previewUrl.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: previewUrl,
+                            fit: BoxFit.cover,
+                            placeholder: (_, __) => const DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Color(0xFF1B4332),
+                                    Color(0xFF2D6A4F),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            errorWidget: (_, __, ___) => const DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Color(0xFF1B4332),
+                                    Color(0xFF2D6A4F),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          )
+                        : const DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Color(0xFF1B4332),
+                                  Color(0xFF2D6A4F),
+                                ],
+                              ),
+                            ),
+                          ),
+                  ),
+                  if (previewUrl == null || previewUrl.isEmpty)
+                    Center(
+                      child: Icon(
+                        Icons.terrain,
+                        color: Colors.white.withValues(alpha: 0.95),
+                        size: 36,
                       ),
                     ),
-                  ),
-                  Center(
-                    child: Icon(
-                      Icons.terrain,
-                      color: Colors.white.withValues(alpha: 0.95),
-                      size: 36,
-                    ),
-                  ),
                   Positioned.fill(
                     child: DecoratedBox(
                       decoration: BoxDecoration(
