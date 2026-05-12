@@ -83,8 +83,8 @@ class HomeNearbyRoutesSection extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 14),
-        SizedBox(height: 210, child: _buildContent()),
+        const SizedBox(height: 10),
+        SizedBox(height: 195, child: _buildContent()),
       ],
     );
   }
@@ -231,7 +231,7 @@ class _TrackRouteCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
-              height: 118,
+              height: 105,
               child: Stack(
                 clipBehavior: Clip.hardEdge,
                 fit: StackFit.expand,

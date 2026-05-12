@@ -218,9 +218,13 @@ class ProfileController extends GetxController {
   Future<void> updateCoverImage() async {
     final sourceIsCamera = await _askImageSource();
     if (sourceIsCamera == null) return;
+    await updateCoverImageFromSource(fromCamera: sourceIsCamera);
+  }
 
+  /// Upload cover image from a specific source (no prompt).
+  Future<void> updateCoverImageFromSource({required bool fromCamera}) async {
     try {
-      final picked = await _imageUploadService.pickImage(fromCamera: sourceIsCamera);
+      final picked = await _imageUploadService.pickImage(fromCamera: fromCamera);
       if (picked == null) return;
 
       isSaving.value = true;

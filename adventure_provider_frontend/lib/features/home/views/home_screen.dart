@@ -127,19 +127,19 @@ class _HomeScreenState extends State<HomeScreen> {
             Expanded(
               child: Obx(() {
                 final activeSession = _buildActiveSession();
-                final tracks = _tc.myTracks;
-                final groups = _gc.myGroups;
-                final communities = _cc.communities;
+                // Snapshot reactive lists so Obx rebuilds when they change.
+                final tracks = _tc.myTracks.toList(growable: false);
+                final groups = _gc.myGroups.toList(growable: false);
+                final communities = _cc.communities.toList(growable: false);
 
                 return SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Container(
-                          margin: const EdgeInsets.only(top: 20),
                           child: HomeSessionHeroCard(
                             activeSession: activeSession,
                             onStartAdventure: () =>
@@ -152,14 +152,14 @@ class _HomeScreenState extends State<HomeScreen> {
                             onEndSession: () => _tc.stopRecording(),
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 16),
                         HomeQuickMapSection(
                           onOpenFullMap: () =>
                               Get.toNamed(AppRoutes.exploreMap),
                           onOpenMapPreview: () =>
                               Get.toNamed(AppRoutes.exploreMap),
                         ),
-                        const SizedBox(height: 28),
+                        const SizedBox(height: 20),
                         HomeNearbyRoutesSection(
                           tracks: tracks,
                           isLoading: _tc.isLoading.value,
@@ -330,7 +330,7 @@ class _AdvancedHomeHeader extends StatelessWidget {
         ),
         Container(
           width: double.infinity,
-          padding: EdgeInsets.fromLTRB(20, topPad, 20, 20),
+          padding: EdgeInsets.fromLTRB(20, topPad, 20, 14),
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,

@@ -359,10 +359,10 @@ class _PublicTracksCollapsingHeaderDelegate extends SliverPersistentHeaderDelega
             ),
             Padding(
               padding: EdgeInsets.fromLTRB(
-                18,
-                MediaQuery.paddingOf(context).top + 8 + expandT * 4,
-                18,
-                8,
+                20,
+                MediaQuery.paddingOf(context).top + 10,
+                20,
+                14,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -434,7 +434,7 @@ class _PublicTracksCollapsingHeaderDelegate extends SliverPersistentHeaderDelega
                               child: Obx(() {
                                 final selected = selectedFilterRx.value;
                                 return SizedBox(
-                                  height: 36,
+                                  height: 32,
                                   child: ListView.separated(
                                     clipBehavior: Clip.none,
                                     padding: EdgeInsets.zero,
@@ -456,92 +456,99 @@ class _PublicTracksCollapsingHeaderDelegate extends SliverPersistentHeaderDelega
                                 );
                               }),
                             ),
-                            SizedBox(height: 8 + expandT * 12),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Colors.transparent,
-                                borderRadius: BorderRadius.circular(22),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.22),
-                                ),
-                              ),
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 12),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.search_rounded,
-                                    size: 16,
-                                    color: Colors.white.withValues(alpha: 0.5),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              height: 40,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.transparent,
+                                  borderRadius: BorderRadius.circular(22),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.22),
                                   ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Theme(
-                                      data: Theme.of(context).copyWith(
-                                        inputDecorationTheme:
-                                            const InputDecorationTheme(
-                                          filled: false,
-                                          fillColor: Colors.transparent,
-                                          border: InputBorder.none,
-                                          focusedBorder: InputBorder.none,
-                                          enabledBorder: InputBorder.none,
-                                          isDense: true,
-                                        ),
-                                      ),
-                                      child: Material(
-                                        color: Colors.transparent,
-                                        child: TextField(
-                                          controller: searchController,
-                                          onChanged: (v) =>
-                                              searchQueryRx.value = v,
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 12,
-                                            color: Colors.white,
-                                            height: 1.25,
-                                          ),
-                                          cursorColor: Colors.white,
-                                          decoration: InputDecoration(
-                                            filled: true,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 0,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.search_rounded,
+                                      size: 16,
+                                      color:
+                                          Colors.white.withValues(alpha: 0.5),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Theme(
+                                        data: Theme.of(context).copyWith(
+                                          inputDecorationTheme:
+                                              const InputDecorationTheme(
+                                            filled: false,
                                             fillColor: Colors.transparent,
-                                            isDense: true,
-                                            hintText:
-                                                'Search tracks by title or description',
-                                            hintStyle: GoogleFonts.poppins(
-                                              fontSize: 11,
-                                              color: Colors.white
-                                                  .withValues(alpha: 0.42),
-                                            ),
                                             border: InputBorder.none,
                                             focusedBorder: InputBorder.none,
                                             enabledBorder: InputBorder.none,
-                                            disabledBorder: InputBorder.none,
-                                            errorBorder: InputBorder.none,
-                                            focusedErrorBorder: InputBorder.none,
-                                            contentPadding:
-                                                const EdgeInsets.symmetric(
-                                              vertical: 6,
+                                            isDense: true,
+                                          ),
+                                        ),
+                                        child: Material(
+                                          color: Colors.transparent,
+                                          child: TextField(
+                                            controller: searchController,
+                                            onChanged: (v) =>
+                                                searchQueryRx.value = v,
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 12,
+                                              color: Colors.white,
+                                              height: 1.25,
+                                            ),
+                                            cursorColor: Colors.white,
+                                            decoration: InputDecoration(
+                                              filled: true,
+                                              fillColor: Colors.transparent,
+                                              isDense: true,
+                                              hintText:
+                                                  'Search tracks by title or description',
+                                              hintStyle: GoogleFonts.poppins(
+                                                fontSize: 11,
+                                                color: Colors.white
+                                                    .withValues(alpha: 0.42),
+                                              ),
+                                              border: InputBorder.none,
+                                              focusedBorder: InputBorder.none,
+                                              enabledBorder: InputBorder.none,
+                                              disabledBorder: InputBorder.none,
+                                              errorBorder: InputBorder.none,
+                                              focusedErrorBorder:
+                                                  InputBorder.none,
+                                              contentPadding:
+                                                  const EdgeInsets.symmetric(
+                                                vertical: 6,
+                                              ),
                                             ),
                                           ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                  Obx(() {
-                                    if (searchQueryRx.value.isEmpty) {
-                                      return const SizedBox.shrink();
-                                    }
-                                    return GestureDetector(
-                                      onTap: onClearSearch,
-                                      behavior: HitTestBehavior.opaque,
-                                      child: Icon(
-                                        Icons.close_rounded,
-                                        size: 15,
-                                        color: Colors.white
-                                            .withValues(alpha: 0.5),
-                                      ),
-                                    );
-                                  }),
-                                ],
+                                    Obx(() {
+                                      if (searchQueryRx.value.isEmpty) {
+                                        return const SizedBox.shrink();
+                                      }
+                                      return GestureDetector(
+                                        onTap: onClearSearch,
+                                        behavior: HitTestBehavior.opaque,
+                                        child: Icon(
+                                          Icons.close_rounded,
+                                          size: 15,
+                                          color: Colors.white
+                                              .withValues(alpha: 0.5),
+                                        ),
+                                      );
+                                    }),
+                                  ],
+                                ),
                               ),
                             ),
                             ],
@@ -623,7 +630,8 @@ class _TrackFilterChip extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+        height: 32,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
           color: active ? _primaryDarkGreen : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
@@ -636,7 +644,7 @@ class _TrackFilterChip extends StatelessWidget {
         child: Text(
           label,
           style: GoogleFonts.poppins(
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: FontWeight.w600,
             color: Colors.white,
           ),

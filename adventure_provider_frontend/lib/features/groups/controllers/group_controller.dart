@@ -126,6 +126,59 @@ class GroupController extends GetxController {
     }
   }
 
+  Future<void> updateGroupDetails(
+    String groupId, {
+    required String name,
+    required String description,
+  }) async {
+    isLoading.value = true;
+    try {
+      final data = await _repository.updateGroup(
+        groupId,
+        name: name,
+        description: description,
+      );
+      final updated = GroupModel.fromJson(data);
+
+      final idx = myGroups.indexWhere((g) => g.id == updated.id);
+      if (idx >= 0) {
+        myGroups[idx] = updated;
+      } else {
+        myGroups.add(updated);
+      }
+      selectedGroup.value =
+          selectedGroup.value?.id == updated.id ? updated : selectedGroup.value;
+    } catch (e) {
+      Get.snackbar('Error', _cleanError(e),
+          snackPosition: SnackPosition.BOTTOM);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> updateGroupImage(String groupId, File imageFile) async {
+    isLoading.value = true;
+    try {
+      await _repository.updateGroupImage(groupId, imageFile);
+      final refreshed = await _repository.getGroupById(groupId);
+      final updated = GroupModel.fromJson(refreshed);
+      final idx = myGroups.indexWhere((g) => g.id == updated.id);
+      if (idx >= 0) {
+        myGroups[idx] = updated;
+      } else {
+        myGroups.add(updated);
+      }
+      if (selectedGroup.value?.id == updated.id) {
+        selectedGroup.value = updated;
+      }
+    } catch (e) {
+      Get.snackbar('Error', _cleanError(e),
+          snackPosition: SnackPosition.BOTTOM);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   // ── Tracking ──
 
   Future<bool> _ensureLocationPermission() async {

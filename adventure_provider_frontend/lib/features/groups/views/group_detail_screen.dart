@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/constants/api_config.dart';
@@ -13,6 +16,8 @@ import '../../track/controllers/track_controller.dart';
 import '../../track/data/models/track_model.dart';
 import '../controllers/group_controller.dart';
 import '../data/models/group_model.dart';
+import '../../auth/widgets/auth_button.dart';
+import '../../auth/widgets/auth_text_field.dart';
 
 class GroupDetailScreen extends StatefulWidget {
   const GroupDetailScreen({super.key});
@@ -78,6 +83,48 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     final message =
         'Join my group "${group.name}" on Adventure Provider.\nInvite code: $inviteCode';
     Share.share(message, subject: 'Join ${group.name}');
+  }
+
+  Future<void> _openEditGroupSheet(GroupModel group) async {
+    if (!_isCurrentUserAdmin(group)) return;
+    if (!mounted) return;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final bottom = MediaQuery.viewInsetsOf(ctx).bottom;
+        return _EditGroupBottomSheet(
+          group: group,
+          bottomInset: bottom,
+          resolveImage: _resolveImage,
+          onSave: ({
+            required String name,
+            required String description,
+            File? imageFile,
+          }) async {
+            if (imageFile != null) {
+              await _gc.updateGroupImage(group.id, imageFile);
+            }
+            if (name.trim() != group.name.trim() ||
+                (description.trim()) != (group.description ?? '').trim()) {
+              await _gc.updateGroupDetails(
+                group.id,
+                name: name.trim(),
+                description: description.trim(),
+              );
+            }
+            await _refreshGroup();
+            Get.snackbar(
+              'Success',
+              'Group updated ✅',
+              snackPosition: SnackPosition.BOTTOM,
+            );
+          },
+        );
+      },
+    );
   }
 
   Future<void> _showTrackSelectionSheet() async {
@@ -211,10 +258,22 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
           Positioned(
             top: MediaQuery.of(context).padding.top + 8,
             right: 8,
-            child: IconButton(
-              icon: const Icon(Icons.share_rounded, color: Colors.white),
-              onPressed: () => _shareGroup(group),
-              tooltip: 'Share group',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_isCurrentUserAdmin(group))
+                  IconButton(
+                    icon:
+                        const Icon(Icons.edit_outlined, color: Colors.white),
+                    onPressed: () => _openEditGroupSheet(group),
+                    tooltip: 'Edit group',
+                  ),
+                IconButton(
+                  icon: const Icon(Icons.share_rounded, color: Colors.white),
+                  onPressed: () => _shareGroup(group),
+                  tooltip: 'Share group',
+                ),
+              ],
             ),
           ),
 
@@ -903,6 +962,233 @@ class _TrackSelectionTile extends StatelessWidget {
                   color: Colors.white38, size: 20),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EditGroupBottomSheet extends StatefulWidget {
+  const _EditGroupBottomSheet({
+    required this.group,
+    required this.bottomInset,
+    required this.resolveImage,
+    required this.onSave,
+  });
+
+  final GroupModel group;
+  final double bottomInset;
+  final String? Function(String? stored) resolveImage;
+  final Future<void> Function({
+    required String name,
+    required String description,
+    File? imageFile,
+  }) onSave;
+
+  @override
+  State<_EditGroupBottomSheet> createState() => _EditGroupBottomSheetState();
+}
+
+class _EditGroupBottomSheetState extends State<_EditGroupBottomSheet> {
+  final _picker = ImagePicker();
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _descCtrl;
+  File? _pickedImage;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl = TextEditingController(text: widget.group.name);
+    _descCtrl = TextEditingController(text: widget.group.description ?? '');
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _descCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    final x = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+    if (x == null) return;
+    setState(() => _pickedImage = File(x.path));
+  }
+
+  Future<void> _save() async {
+    if (_saving) return;
+    final name = _nameCtrl.text.trim();
+    if (name.isEmpty) return;
+
+    setState(() => _saving = true);
+    try {
+      await widget.onSave(
+        name: name,
+        description: _descCtrl.text,
+        imageFile: _pickedImage,
+      );
+      if (mounted) Navigator.of(context).pop();
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final g = widget.group;
+    final letter = g.name.isNotEmpty ? g.name[0].toUpperCase() : '?';
+    final url = widget.resolveImage(g.image);
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(0, 10, 0, 20 + widget.bottomInset),
+      decoration: const BoxDecoration(
+        color: Color(0xFF0D1117),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 44,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 14, bottom: 16),
+              child: Text(
+                'Edit Group',
+                style: GoogleFonts.bebasNeue(
+                  fontSize: 22,
+                  color: Colors.white,
+                  letterSpacing: 1.1,
+                ),
+              ),
+            ),
+            Center(
+              child: GestureDetector(
+                onTap: _pickImage,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Color(0xFF1B4332), Color(0xFF52B788)],
+                            ),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: _pickedImage != null
+                              ? Image.file(_pickedImage!, fit: BoxFit.cover)
+                              : (url != null && url.isNotEmpty)
+                                  ? CachedNetworkImage(
+                                      imageUrl: url,
+                                      fit: BoxFit.cover,
+                                      placeholder: (_, __) => Center(
+                                        child: Text(
+                                          letter,
+                                          style: GoogleFonts.bebasNeue(
+                                            fontSize: 26,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                      errorWidget: (_, __, ___) => Center(
+                                        child: Text(
+                                          letter,
+                                          style: GoogleFonts.bebasNeue(
+                                            fontSize: 26,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                  : Center(
+                                      child: Text(
+                                        letter,
+                                        style: GoogleFonts.bebasNeue(
+                                          fontSize: 26,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2D6A4F),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: const Color(0xFF0D1117),
+                                width: 2,
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt,
+                              color: Colors.white,
+                              size: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Tap to change photo',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: const Color(0xFF6B7280),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            AuthTextField(
+              controller: _nameCtrl,
+              label: 'Group Name',
+              hint: 'Enter group name',
+              prefixIcon: Icons.group_outlined,
+              fillColor: Colors.white.withValues(alpha: 0.08),
+            ),
+            const SizedBox(height: 8),
+            AuthTextField(
+              controller: _descCtrl,
+              label: 'Description (optional)',
+              hint: 'Write a short description',
+              prefixIcon: Icons.description_outlined,
+              maxLines: 3,
+              fillColor: Colors.white.withValues(alpha: 0.08),
+            ),
+            const SizedBox(height: 24),
+            AuthButton(
+              onPressed: _save,
+              label: 'Save Changes',
+              isLoading: _saving,
+            ),
+          ],
         ),
       ),
     );

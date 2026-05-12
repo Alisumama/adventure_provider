@@ -84,6 +84,23 @@ class GroupRepository {
     }
   }
 
+  /// PUT /groups/:id
+  Future<Map<String, dynamic>> updateGroup(
+    String groupId, {
+    required String name,
+    required String description,
+  }) async {
+    try {
+      final response = await _dio.put<dynamic>(
+        '$_groups/$groupId',
+        data: {'name': name, 'description': description},
+      );
+      return _requireMap(response.data);
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
   /// POST /groups/join
   Future<Map<String, dynamic>> joinGroup(String inviteCode) async {
     try {

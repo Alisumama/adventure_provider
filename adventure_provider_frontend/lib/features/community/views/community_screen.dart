@@ -6,7 +6,6 @@ import 'package:shimmer/shimmer.dart';
 
 import '../../../core/constants/api_config.dart';
 import '../../../core/constants/app_routes.dart';
-import '../../../core/constants/shell_layout.dart';
 import '../controllers/community_controller.dart';
 import '../data/models/community_model.dart';
 
@@ -34,161 +33,491 @@ class _CommunityScreenState extends State<CommunityScreen> {
       body: SafeArea(
         top: false,
         bottom: false,
-        child: Obx(() {
-          final mine =
-              _c.communities.where((e) => e.isMember).toList(growable: false);
-          final loading = _c.isLoading.value;
-          final list = _c.communities;
-          final headerExt = shellCollapsingHeaderExtents(context);
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _CommunityTopHeader(
+              pulseDot: const _DiscoverPulseDot(),
+              onRefresh: () => _c.fetchCommunities(refresh: true),
+              onCreateTap: () => Get.toNamed(AppRoutes.createCommunity),
+            ),
+            Expanded(
+              child: Obx(() {
+                final mine = _c.communities
+                    .where((e) => e.isMember)
+                    .toList(growable: false);
+                final loading = _c.isLoading.value;
+                final list = _c.communities;
 
-          return CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              SliverPersistentHeader(
-                pinned: true,
-                delegate: _CommunityCollapsingHeaderDelegate(
-                  minExtent: headerExt.min,
-                  maxExtent: headerExt.max,
-                  pulseDot: const _DiscoverPulseDot(),
-                  searchController: _c.searchController,
-                  onSearchChanged: _c.scheduleSearchCommunities,
-                  searchQueryRx: _c.searchQuery,
-                  onClearSearch: _c.clearSearch,
-                  selectedCategoryRx: _c.selectedCategory,
-                  onCategory: _c.setCategory,
-                  onRefresh: () => _c.fetchCommunities(refresh: true),
-                  onCreateTap: () => Get.toNamed(AppRoutes.createCommunity),
-                ),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 20, 16, 110),
-                sliver: SliverToBoxAdapter(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (mine.isNotEmpty) ...[
-                        Row(
+                return CustomScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  slivers: [
+                    SliverAppBar(
+                      pinned: true,
+                      automaticallyImplyLeading: false,
+                      backgroundColor: _scaffoldBg,
+                      elevation: 0,
+                      toolbarHeight: 0,
+                      flexibleSpace: const FlexibleSpaceBar(
+                        background: SizedBox.shrink(),
+                      ),
+                      bottom: PreferredSize(
+                        preferredSize: const Size.fromHeight(96),
+                        child: Container(
+                          color: _scaffoldBg,
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _LightCommunitySearchBar(
+                                controller: _c.searchController,
+                                onChanged: _c.scheduleSearchCommunities,
+                                onClear: _c.clearSearch,
+                                queryRx: _c.searchQuery,
+                              ),
+                              const SizedBox(height: 8),
+                              _LightCommunityChipsRow(
+                                selectedCategoryRx: _c.selectedCategory,
+                                onCategory: _c.setCategory,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(16, 20, 16, 110),
+                      sliver: SliverToBoxAdapter(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Column(
+                            if (mine.isNotEmpty) ...[
+                              Row(
+                                children: [
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'MY COMMUNITIES',
+                                        style: GoogleFonts.bebasNeue(
+                                          fontSize: 20,
+                                          letterSpacing: 1.2,
+                                          color: _textPrimary,
+                                          height: 1,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Container(
+                                        width: 36,
+                                        height: 3,
+                                        decoration: BoxDecoration(
+                                          color: _primary,
+                                          borderRadius:
+                                              BorderRadius.circular(2),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const Spacer(),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                height: 96,
+                                child: ListView.builder(
+                                  scrollDirection: Axis.horizontal,
+                                  padding: EdgeInsets.zero,
+                                  itemCount: mine.length,
+                                  itemBuilder: (context, index) {
+                                    final community = mine[index];
+                                    return Padding(
+                                      padding: EdgeInsets.only(
+                                        right:
+                                            index < mine.length - 1 ? 14 : 0,
+                                      ),
+                                      child: _MyCommunityStripItem(
+                                        community: community,
+                                        resolveImage: _resolveImage,
+                                        onTap: () => Get.toNamed(
+                                          AppRoutes.communityDetailNamed(
+                                            community.id,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 28),
+                            ],
+                            Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'MY COMMUNITIES',
-                                  style: GoogleFonts.bebasNeue(
-                                    fontSize: 20,
-                                    letterSpacing: 1.2,
-                                    color: _textPrimary,
-                                    height: 1,
-                                  ),
+                                Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'DISCOVER',
+                                      style: GoogleFonts.bebasNeue(
+                                        fontSize: 20,
+                                        letterSpacing: 1.2,
+                                        color: _textPrimary,
+                                        height: 1,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Container(
+                                      width: 36,
+                                      height: 3,
+                                      decoration: BoxDecoration(
+                                        color: _primary,
+                                        borderRadius:
+                                            BorderRadius.circular(2),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(height: 2),
-                                Container(
-                                  width: 36,
-                                  height: 3,
-                                  decoration: BoxDecoration(
-                                    color: _primary,
-                                    borderRadius: BorderRadius.circular(2),
+                                const Spacer(),
+                                Text(
+                                  '${list.length} communities',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 11,
+                                    color: _muted,
                                   ),
                                 ),
                               ],
                             ),
-                            const Spacer(),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          height: 96,
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            padding: EdgeInsets.zero,
-                            itemCount: mine.length,
-                            itemBuilder: (context, index) {
-                              final community = mine[index];
-                              return Padding(
-                                padding: EdgeInsets.only(
-                                  right: index < mine.length - 1 ? 14 : 0,
-                                ),
-                                child: _MyCommunityStripItem(
-                                  community: community,
-                                  resolveImage: _resolveImage,
-                                  onTap: () => Get.toNamed(
-                                    AppRoutes.communityDetailNamed(community.id),
+                            const SizedBox(height: 14),
+                            if (loading)
+                              ...List.generate(
+                                3,
+                                (_) => const _CommunityShimmerCardNew(),
+                              )
+                            else if (list.isEmpty)
+                              _EmptyStateNew(
+                                onCreate: () =>
+                                    Get.toNamed(AppRoutes.createCommunity),
+                              )
+                            else
+                              ...list.map(
+                                (community) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 14),
+                                  child: _CommunityCardNew(
+                                    community: community,
+                                    resolveImage: _resolveImage,
+                                    onOpenDetail: () => Get.toNamed(
+                                      AppRoutes.communityDetailNamed(
+                                          community.id),
+                                    ),
+                                    onJoin: () =>
+                                        _c.joinCommunity(community.id),
                                   ),
                                 ),
-                              );
-                            },
-                          ),
+                              ),
+                          ],
                         ),
-                        const SizedBox(height: 28),
-                      ],
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'DISCOVER',
-                                style: GoogleFonts.bebasNeue(
-                                  fontSize: 20,
-                                  letterSpacing: 1.2,
-                                  color: _textPrimary,
-                                  height: 1,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Container(
-                                width: 36,
-                                height: 3,
-                                decoration: BoxDecoration(
-                                  color: _primary,
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const Spacer(),
-                          Text(
-                            '${list.length} communities',
-                            style: GoogleFonts.poppins(
-                              fontSize: 11,
-                              color: _muted,
-                            ),
-                          ),
-                        ],
                       ),
-                      const SizedBox(height: 14),
-                      if (loading)
-                        ...List.generate(
-                          3,
-                          (_) => const _CommunityShimmerCardNew(),
-                        )
-                      else if (list.isEmpty)
-                        _EmptyStateNew(
-                          onCreate: () =>
-                              Get.toNamed(AppRoutes.createCommunity),
-                        )
-                      else
-                        ...list.map(
-                          (community) => Padding(
-                            padding: const EdgeInsets.only(bottom: 14),
-                            child: _CommunityCardNew(
-                              community: community,
-                              resolveImage: _resolveImage,
-                              onOpenDetail: () => Get.toNamed(
-                                AppRoutes.communityDetailNamed(community.id),
-                              ),
-                              onJoin: () => _c.joinCommunity(community.id),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
+                    ),
+                  ],
+                );
+              }),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CommunityTopHeader extends StatelessWidget {
+  const _CommunityTopHeader({
+    required this.pulseDot,
+    required this.onRefresh,
+    required this.onCreateTap,
+  });
+
+  final Widget pulseDot;
+  final VoidCallback onRefresh;
+  final VoidCallback onCreateTap;
+
+  static const _accent = Color(0xFF52B788);
+
+  @override
+  Widget build(BuildContext context) {
+    final topPad = MediaQuery.paddingOf(context).top + 10;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          top: -20,
+          right: -20,
+          child: IgnorePointer(
+            child: Opacity(
+              opacity: 0.85,
+              child: Container(
+                width: 110,
+                height: 110,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.035),
                 ),
               ),
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: -28,
+          left: -28,
+          child: IgnorePointer(
+            child: Container(
+              width: 92,
+              height: 92,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.02),
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          top: -4,
+          right: 48,
+          child: IgnorePointer(
+            child: Container(
+              width: 54,
+              height: 54,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _accent.withValues(alpha: 0.06),
+              ),
+            ),
+          ),
+        ),
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.fromLTRB(20, topPad, 20, 14),
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF0D2B1E),
+                Color(0xFF1B4332),
+                Color(0xFF2D6A4F),
+              ],
+              stops: [0.0, 0.5, 1.0],
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        pulseDot,
+                        const SizedBox(width: 5),
+                        Text(
+                          'DISCOVER',
+                          style: GoogleFonts.poppins(
+                            fontSize: 8,
+                            fontWeight: FontWeight.w600,
+                            color: _accent,
+                            letterSpacing: 2.0,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'COMMUNITIES',
+                      style: GoogleFonts.bebasNeue(
+                        fontSize: 26,
+                        color: Colors.white,
+                        letterSpacing: 1.3,
+                        height: 1.0,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _CommunityOutlineHeaderIconButton(
+                icon: Icons.refresh_rounded,
+                onTap: onRefresh,
+              ),
+              const SizedBox(width: 6),
+              _CommunityOutlineHeaderIconButton(
+                icon: Icons.add,
+                onTap: onCreateTap,
+              ),
             ],
-          );
-        }),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LightCommunitySearchBar extends StatelessWidget {
+  const _LightCommunitySearchBar({
+    required this.controller,
+    required this.onChanged,
+    required this.onClear,
+    required this.queryRx,
+  });
+
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
+  final RxString queryRx;
+
+  static const _border = Color(0xFFE2EDE8);
+  static const _muted = Color(0xFF6B7280);
+  static const _textPrimary = Color(0xFF1A1A2E);
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 42,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _border),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+        child: Row(
+          children: [
+            const Icon(Icons.search_rounded, size: 18, color: _muted),
+            const SizedBox(width: 8),
+            Expanded(
+              child: TextField(
+                controller: controller,
+                onChanged: onChanged,
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  color: _textPrimary,
+                  height: 1.2,
+                ),
+                cursorColor: _textPrimary,
+                decoration: InputDecoration(
+                  filled: false,
+                  fillColor: Colors.transparent,
+                  hintText: 'Search communities...',
+                  hintStyle: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: _muted,
+                  ),
+                  border: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                ),
+              ),
+            ),
+            Obx(() {
+              if (queryRx.value.isEmpty) return const SizedBox.shrink();
+              return GestureDetector(
+                onTap: onClear,
+                behavior: HitTestBehavior.opaque,
+                child: const Icon(Icons.close_rounded, size: 18, color: _muted),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LightCommunityChipsRow extends StatelessWidget {
+  const _LightCommunityChipsRow({
+    required this.selectedCategoryRx,
+    required this.onCategory,
+  });
+
+  final RxString selectedCategoryRx;
+  final Future<void> Function(String) onCategory;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final selected = selectedCategoryRx.value;
+      return SizedBox(
+        height: 36,
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _LightFilterChip(
+                  label: 'All',
+                  active: selected.isEmpty,
+                  onTap: () => onCategory(''),
+                ),
+                const SizedBox(width: 8),
+                _LightFilterChip(
+                  label: '🥾 Hiking',
+                  active: selected == 'hiking',
+                  onTap: () => onCategory('hiking'),
+                ),
+                const SizedBox(width: 8),
+                _LightFilterChip(
+                  label: '🚙 Off-Road',
+                  active: selected == 'offroading',
+                  onTap: () => onCategory('offroading'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    });
+  }
+}
+
+class _LightFilterChip extends StatelessWidget {
+  const _LightFilterChip({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  static const _primary = Color(0xFF2D6A4F);
+  static const _border = Color(0xFFE2EDE8);
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 32,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: active ? Colors.white : const Color(0xFF6B7280),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: _border),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: active ? _primary : Colors.white,
+          ),
+        ),
       ),
     );
   }
@@ -240,347 +569,6 @@ class _DiscoverPulseDotState extends State<_DiscoverPulseDot>
   }
 }
 
-// ─── Collapsing header: pinned title row + scroll-away search / chips ─────
-
-/// Min height = sticky title + “New”; max adds search row + chips.
-class _CommunityCollapsingHeaderDelegate extends SliverPersistentHeaderDelegate {
-  _CommunityCollapsingHeaderDelegate({
-    required this.minExtent,
-    required this.maxExtent,
-    required this.pulseDot,
-    required this.searchController,
-    required this.onSearchChanged,
-    required this.searchQueryRx,
-    required this.onClearSearch,
-    required this.selectedCategoryRx,
-    required this.onCategory,
-    required this.onRefresh,
-    required this.onCreateTap,
-  });
-
-  @override
-  final double minExtent;
-  @override
-  final double maxExtent;
-
-  final Widget pulseDot;
-  final TextEditingController searchController;
-  final void Function(String) onSearchChanged;
-  final RxString searchQueryRx;
-  final VoidCallback onClearSearch;
-  final RxString selectedCategoryRx;
-  final Future<void> Function(String) onCategory;
-  final VoidCallback onRefresh;
-  final VoidCallback onCreateTap;
-
-  static const _accent = Color(0xFF52B788);
-
-  @override
-  Widget build(
-    BuildContext context,
-    double shrinkOffset,
-    bool overlapsContent,
-  ) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final deltaRange = maxExtent - minExtent;
-        final expandT = deltaRange > 0
-            ? ((constraints.maxHeight - minExtent) / deltaRange).clamp(
-                0.0,
-                1.0,
-              )
-            : 0.0;
-
-        final titleScale = expandT > 0.35 ? 1.0 : 0.96 + expandT * 0.04;
-
-        return Stack(
-        clipBehavior: Clip.none,
-        fit: StackFit.expand,
-        children: [
-          Positioned.fill(
-            child: IgnorePointer(
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFF0D2B1E),
-                      Color(0xFF1B4332),
-                      Color(0xFF2D6A4F),
-                    ],
-                    stops: [0.0, 0.5, 1.0],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: -20,
-            right: -20,
-            child: IgnorePointer(
-              child: Opacity(
-                opacity: 0.85,
-                child: Container(
-                  width: 110,
-                  height: 110,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withValues(alpha: 0.035),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -28,
-            left: -28,
-            child: IgnorePointer(
-              child: Container(
-                width: 92,
-                height: 92,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.02),
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: -4,
-            right: 48,
-            child: IgnorePointer(
-              child: Container(
-                width: 54,
-                height: 54,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: _accent.withValues(alpha: 0.06),
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              18,
-              MediaQuery.paddingOf(context).top + 8 + expandT * 4,
-              18,
-              8,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Transform.scale(
-                  scale: titleScale,
-                  alignment: Alignment.centerLeft,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                pulseDot,
-                                const SizedBox(width: 5),
-                                Text(
-                                  'DISCOVER',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 8,
-                                    fontWeight: FontWeight.w600,
-                                    color: _accent,
-                                    letterSpacing: 2.0,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'COMMUNITIES',
-                              style: GoogleFonts.bebasNeue(
-                                fontSize: 26,
-                                color: Colors.white,
-                                letterSpacing: 1.3,
-                                height: 1.0,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      _CommunityOutlineHeaderIconButton(
-                        icon: Icons.refresh_rounded,
-                        onTap: onRefresh,
-                      ),
-                      const SizedBox(width: 6),
-                      _CommunityOutlineHeaderIconButton(
-                        icon: Icons.add,
-                        onTap: onCreateTap,
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: ClipRect(
-                    child: Align(
-                      alignment: Alignment.topCenter,
-                      heightFactor: expandT.clamp(0.0, 1.0),
-                      child: Opacity(
-                        opacity: expandT,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                          const SizedBox(height: 10),
-                          Obx(() {
-                            final selected = selectedCategoryRx.value;
-                            return SizedBox(
-                              height: 36,
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: Row(
-                                    children: [
-                                      _CategoryChipNew(
-                                        label: 'All',
-                                        active: selected.isEmpty,
-                                        onTap: () => onCategory(''),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      _CategoryChipNew(
-                                        label: '🥾 Hiking',
-                                        active: selected == 'hiking',
-                                        onTap: () => onCategory('hiking'),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      _CategoryChipNew(
-                                        label: '🚙 Off-Road',
-                                        active: selected == 'offroading',
-                                        onTap: () => onCategory('offroading'),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            );
-                          }),
-                          SizedBox(height: 8 + expandT * 12),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.transparent,
-                              borderRadius: BorderRadius.circular(22),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.22),
-                              ),
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 0,
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.search_rounded,
-                                  size: 16,
-                                  color: Colors.white.withValues(alpha: 0.5),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Theme(
-                                    data: Theme.of(context).copyWith(
-                                      inputDecorationTheme:
-                                          const InputDecorationTheme(
-                                        filled: false,
-                                        fillColor: Colors.transparent,
-                                        border: InputBorder.none,
-                                        focusedBorder: InputBorder.none,
-                                        enabledBorder: InputBorder.none,
-                                        isDense: true,
-                                      ),
-                                    ),
-                                    child: Material(
-                                      color: Colors.transparent,
-                                      child: TextField(
-                                        controller: searchController,
-                                        onChanged: onSearchChanged,
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 12,
-                                          color: Colors.white,
-                                          height: 1.25,
-                                        ),
-                                        cursorColor: Colors.white,
-                                        decoration: InputDecoration(
-                                          filled: true,
-                                          fillColor: Colors.transparent,
-                                          isDense: true,
-                                          hintText: 'Search communities...',
-                                          hintStyle: GoogleFonts.poppins(
-                                            fontSize: 12,
-                                            color: Colors.white
-                                                .withValues(alpha: 0.42),
-                                          ),
-                                          border: InputBorder.none,
-                                          focusedBorder: InputBorder.none,
-                                          enabledBorder: InputBorder.none,
-                                          disabledBorder: InputBorder.none,
-                                          errorBorder: InputBorder.none,
-                                          focusedErrorBorder: InputBorder.none,
-                                          contentPadding:
-                                              const EdgeInsets.symmetric(
-                                            vertical: 6,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Obx(() {
-                                  if (searchQueryRx.value.isEmpty) {
-                                    return const SizedBox.shrink();
-                                  }
-                                  return GestureDetector(
-                                    onTap: onClearSearch,
-                                    behavior: HitTestBehavior.opaque,
-                                    child: Icon(
-                                      Icons.close_rounded,
-                                      size: 15,
-                                      color:
-                                          Colors.white.withValues(alpha: 0.5),
-                                    ),
-                                  );
-                                }),
-                              ],
-                            ),
-                          ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-        );
-      },
-    );
-  }
-
-  @override
-  bool shouldRebuild(covariant _CommunityCollapsingHeaderDelegate oldDelegate) {
-    return oldDelegate.minExtent != minExtent ||
-        oldDelegate.maxExtent != maxExtent ||
-        oldDelegate.searchController != searchController ||
-        oldDelegate.pulseDot != pulseDot ||
-        oldDelegate.selectedCategoryRx != selectedCategoryRx ||
-        oldDelegate.searchQueryRx != searchQueryRx ||
-        oldDelegate.onRefresh != onRefresh ||
-        oldDelegate.onCreateTap != onCreateTap;
-  }
-}
-
 class _CommunityOutlineHeaderIconButton extends StatelessWidget {
   const _CommunityOutlineHeaderIconButton({
     required this.icon,
@@ -605,55 +593,6 @@ class _CommunityOutlineHeaderIconButton extends StatelessWidget {
         ),
         padding: const EdgeInsets.all(8),
         child: Icon(icon, color: Colors.white, size: 18),
-      ),
-    );
-  }
-}
-
-class _CategoryChipNew extends StatelessWidget {
-  const _CategoryChipNew({
-    required this.label,
-    required this.active,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-
-  static const _primaryDark = Color(0xFF1B4332);
-  static const _accent = Color(0xFF52B788);
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-        decoration: BoxDecoration(
-          color: active ? _accent : Colors.white.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20),
-          border: active
-              ? null
-              : Border.all(color: Colors.white.withValues(alpha: 0.2)),
-          boxShadow: active
-              ? [
-                  BoxShadow(
-                    color: _accent.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                ]
-              : null,
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.poppins(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: active ? _primaryDark : Colors.white,
-          ),
-        ),
       ),
     );
   }

@@ -79,6 +79,119 @@ class _ProfileContent extends StatelessWidget {
     return ('$a$b').toUpperCase();
   }
 
+  Future<void> _showCoverPickerSheet(BuildContext context) async {
+    final c = Get.find<ProfileController>();
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: false,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + MediaQuery.paddingOf(ctx).bottom),
+          decoration: const BoxDecoration(
+            color: AppColors.darkSurface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Change Cover Photo',
+                style: GoogleFonts.bebasNeue(
+                  fontSize: 20,
+                  color: Colors.white,
+                  letterSpacing: 1.1,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  GestureDetector(
+                    onTap: () async {
+                      Navigator.of(ctx).pop();
+                      await c.updateCoverImageFromSource(fromCamera: true);
+                    },
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF1E2A1E),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt,
+                            color: AppColors.primaryLight,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Camera',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () async {
+                      Navigator.of(ctx).pop();
+                      await c.updateCoverImageFromSource(fromCamera: false);
+                    },
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF1E2A1E),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.photo_library_outlined,
+                            color: AppColors.primaryLight,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Gallery',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _showEditBottomSheet(
     BuildContext context, {
     required String title,
@@ -246,16 +359,22 @@ class _ProfileContent extends StatelessWidget {
                 ),
               ),
               Positioned(
-                top: 6,
-                right: 6,
-                child: IconButton(
-                  onPressed: onChangeCover,
-                  icon: const Icon(Icons.photo_camera_outlined),
-                  color: Colors.white,
-                  style: IconButton.styleFrom(
-                    backgroundColor: Colors.black26,
+                top: 16,
+                right: 16,
+                child: GestureDetector(
+                  onTap: () => _showCoverPickerSheet(context),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.45),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.all(8),
+                    child: const Icon(
+                      Icons.add_photo_alternate_outlined,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
-                  tooltip: 'Change cover',
                 ),
               ),
               Positioned(
@@ -607,14 +726,24 @@ class _StatsRow extends StatelessWidget {
     final adventures = (profile?.totalAdventures ?? 0).toString();
 
     return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        Expanded(child: _StatBox(value: tracks, label: 'TRACKS')),
-        const SizedBox(width: 10),
-        Expanded(child: _StatBox(value: km, label: 'DIST KM')),
-        const SizedBox(width: 10),
-        Expanded(child: _StatBox(value: steps, label: 'STEPS')),
-        const SizedBox(width: 10),
-        Expanded(child: _StatBox(value: adventures, label: 'ADVENTURES')),
+        Expanded(
+          flex: 1,
+          child: _StatBox(value: tracks, label: 'TRACKS'),
+        ),
+        Expanded(
+          flex: 1,
+          child: _StatBox(value: km, label: 'KM'),
+        ),
+        Expanded(
+          flex: 1,
+          child: _StatBox(value: steps, label: 'STEPS'),
+        ),
+        Expanded(
+          flex: 1,
+          child: _StatBox(value: adventures, label: 'TRIPS'),
+        ),
       ],
     );
   }
@@ -629,32 +758,38 @@ class _StatBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      constraints: const BoxConstraints(minHeight: 68),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
       decoration: BoxDecoration(
         color: AppColors.darkSurface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
             value,
             textAlign: TextAlign.center,
-            style: GoogleFonts.bebasNeue(
-              fontSize: 20,
-              color: AppColors.primaryLight,
-              height: 1.1,
+            style: GoogleFonts.spaceMono(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF52B788),
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.spaceMono(
-              fontSize: 9,
-              color: Colors.white,
-              letterSpacing: 0.5,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label.toUpperCase(),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              style: GoogleFonts.poppins(
+                fontSize: 9,
+                color: Colors.white.withValues(alpha: 0.6),
+                letterSpacing: 0.8,
+              ),
             ),
           ),
         ],
